@@ -46,6 +46,12 @@ export default function CountdownTimer({ deadline, variant, onExpire, promoLabel
   }, [deadline, onExpire]);
 
   if (timeLeft.isExpired) {
+    const difference = +new Date() - +new Date(deadline);
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    if (difference > twentyFourHours) {
+      return null;
+    }
+
     if (variant === 'banner') {
       return (
         <div className="bg-rose-950 text-rose-200 border-b border-rose-900 py-3 px-6 text-center text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2">

@@ -2398,11 +2398,21 @@ const handleSave = async (course) => {
                                 {course.slogan}
                               </p>
 
-                              {isPromoActive && course.promoDeadline && course.promoLabel && (
-                                <div className="mb-4">
-                                  <CountdownTimer deadline={course.promoDeadline} variant="tile" onExpire={handleTimerExpire} promoLabel={course.promoLabel} />
-                                </div>
-                              )}
+                              {course.promoDeadline && course.promoLabel && (() => {
+                                const deadlineTime = new Date(course.promoDeadline).getTime();
+                                const now = Date.now();
+                                const isExpired = now >= deadlineTime;
+                                const difference = now - deadlineTime;
+                                const twentyFourHours = 24 * 60 * 60 * 1000;
+                                if (!isExpired || difference <= twentyFourHours) {
+                                  return (
+                                    <div className="mb-4">
+                                      <CountdownTimer deadline={course.promoDeadline} variant="tile" onExpire={handleTimerExpire} promoLabel={course.promoLabel} />
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
 
                               {/* Pricing & CTA Button */}
                               <div className={`mt-auto pt-4 border-t flex items-center justify-between ${
@@ -2819,22 +2829,58 @@ const handleSave = async (course) => {
                   </div>
 
                   <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200/80 shadow-sm">
-                    {selectedCourse && selectedCourse.originalPrice > selectedCourse.price && selectedCourse.promoDeadline && (
-                      <div className="max-w-xl mx-auto mb-8 bg-amber-500/5 border border-amber-500/10 rounded-[2rem] p-5">
-                        <div className="text-center mb-3">
-                          <p className="text-xs font-black uppercase tracking-wider text-amber-600 flex items-center justify-center gap-1.5">
-                            <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
-                            Profitez du tarif réduit avant l'expiration de l'offre
-                          </p>
+                    {(() => {
+                      if (!selectedCourse || !selectedCourse.promoDeadline || selectedCourse.originalPrice <= selectedCourse.price) return null;
+                      
+                      const deadlineTime = new Date(selectedCourse.promoDeadline).getTime();
+                      const now = Date.now();
+                      const isExpired = now >= deadlineTime;
+                      const difference = now - deadlineTime;
+                      const twentyFourHours = 24 * 60 * 60 * 1000;
+                      
+                      // If it is expired by more than 24 hours, hide the entire block
+                      if (isExpired && difference > twentyFourHours) {
+                        return null;
+                      }
+                      
+                      return (
+                        <div className={`max-w-xl mx-auto mb-8 rounded-[2rem] p-5 border shadow-sm transition-all duration-300 ${ 
+                          isExpired 
+                            ? 'bg-slate-50/50 border-slate-200/80 text-center' 
+                            : 'bg-amber-500/5 border-amber-500/10'
+                        }`}>
+                          {!isExpired ? (
+                            <>
+                              <div className="text-center mb-3">
+                                <p className="text-xs font-black uppercase tracking-wider text-amber-600 flex items-center justify-center gap-1.5">
+                                  <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                                  Profitez du tarif réduit avant l'expiration de l'offre
+                                </p>
+                              </div>
+                              <CountdownTimer 
+                                deadline={selectedCourse.promoDeadline} 
+                                variant="tile" 
+                                onExpire={handleTimerExpire} 
+                                promoLabel={selectedCourse.promoLabel} 
+                              />
+                            </>
+                          ) : ( 
+                            <div className="flex flex-col items-center gap-3 py-1">
+                              <p className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center justify-center gap-1.5 text-center leading-relaxed">
+                                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                                L'offre de lancement est terminée — Tarif standard en vigueur
+                              </p>
+                              <CountdownTimer 
+                                deadline={selectedCourse.promoDeadline} 
+                                variant="tile" 
+                                onExpire={handleTimerExpire} 
+                                promoLabel={selectedCourse.promoLabel} 
+                              />
+                            </div>
+                          )}
                         </div>
-                        <CountdownTimer 
-                          deadline={selectedCourse.promoDeadline} 
-                          variant="tile" 
-                          onExpire={handleTimerExpire} 
-                          promoLabel={selectedCourse.promoLabel} 
-                        />
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
                       <button
