@@ -5,15 +5,24 @@ import dotenv from "dotenv";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import multer from "multer";
+import crypto from "crypto";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, collection, addDoc } from "firebase/firestore";
 
 // Load environment variables
 dotenv.config();
 
+// Memory store for active server-verified admin sessions (highly secure, generated on startup)
+export const activeAdminSessions = new Set<string>();
+
 // Token Verification Helpers for Admin Security
 async function verifyAdminToken(token: string): Promise<boolean> {
   try {
+    // 1. Check if it's a valid local server-verified session token first (zero configuration fallback)
+    if (activeAdminSessions.has(token)) {
+      return true;
+    }
+
     const configPath = path.join(process.cwd(), "firebase-applet-config.json");
     if (!fs.existsSync(configPath)) {
       console.warn("[Server Auth] firebase-applet-config.json not found.");
@@ -434,6 +443,44 @@ app.post("/api/upload-video", requireAdmin, upload.single("video"), (req, res) =
 });
 
 app.use(express.json());
+
+// Admin Login Route: Verifies passcode and returns a secure local session token
+app.post("/api/admin/login-password", (req, res) => {
+  try {
+    const { password } = req.body;
+    // Default password is 'admin3d' or can be configured via ADMIN_PASSWORD environment variable
+    const adminPassword = process.env.ADMIN_PASSWORD || "admin3d";
+
+    if (password === adminPassword) {
+      // Generate a cryptographically secure token
+      const sessionToken = "l3d_sess_" + crypto.randomBytes(24).toString("hex");
+      activeAdminSessions.add(sessionToken);
+      console.log("[Server Auth] Admin logged in with passcode, session created.");
+      return res.json({ success: true, token: sessionToken });
+    } else {
+      return res.status(401).json({ success: false, error: "Mot de passe incorrect. Veuillez réessayer." });
+    }
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: "Erreur serveur : " + err.message });
+  }
+});
+
+// Admin Logout Route: Invalidates the local session token
+app.post("/api/admin/logout", (req, res) => {
+  try {
+    const authHeader = req.headers["authorization"] || req.headers["x-admin-token"];
+    if (authHeader && typeof authHeader === "string") {
+      const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+      if (activeAdminSessions.has(token)) {
+        activeAdminSessions.delete(token);
+        console.log("[Server Auth] Admin session invalidated.");
+      }
+    }
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // 1. Config API: Check if Stripe and Skool are configured
 app.get("/api/config", (req, res) => {

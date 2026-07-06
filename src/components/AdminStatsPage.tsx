@@ -39,6 +39,35 @@ export default function AdminStatsPage({ onGoBack }: AdminStatsPageProps) {
   const [filterDays, setFilterDays] = useState<number>(7); // 1, 7, 30, 0 (all-time)
   const [stripeSales, setStripeSales] = useState<any[]>([]);
   const [stripeError, setStripeError] = useState<string>('');
+  const [adminPasscode, setAdminPasscode] = useState<string>('');
+
+  const handlePasscodeLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPasscode.trim()) return;
+    setLoading(true);
+    setLoginError('');
+    try {
+      const res = await fetch('/api/admin/login-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPasscode })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        sessionStorage.setItem('l3d_admin_token', data.token);
+        sessionStorage.setItem('l3d_admin_auth', 'true');
+        setIsAuthenticated(true);
+        setAdminPasscode('');
+      } else {
+        setLoginError(data.error || "Une erreur s'est produite lors de la connexion.");
+      }
+    } catch (err: any) {
+      console.error("[Passcode Auth Error]", err);
+      setLoginError("Erreur d'authentification : " + (err.message || String(err)));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle Firebase Auth Session Persistence
   useEffect(() => {
@@ -297,44 +326,89 @@ export default function AdminStatsPage({ onGoBack }: AdminStatsPageProps) {
             <p className="text-slate-400 mt-2 text-sm font-medium">Visualisez l'activité et l'engagement de votre site en temps réel</p>
           </div>
 
-          <div className="bg-slate-800/80 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl space-y-6">
-            <div className="text-center space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[11px] font-bold border border-blue-500/20">
-                <Lock className="w-3 h-3" /> Espace Sécurisé
-              </span>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Afin de garantir la confidentialité et la sécurité de vos données de vente et de configuration, l'accès est restreint au compte propriétaire : <strong className="text-white">lescreateurs3d@gmail.com</strong>.
-              </p>
-            </div>
+            <div className="bg-slate-800/80 backdrop-blur-md border border-slate-700 rounded-3xl p-8 shadow-2xl space-y-6">
+              <div className="text-center space-y-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[11px] font-bold border border-blue-500/20">
+                  <Lock className="w-3 h-3" /> Espace Sécurisé
+                </span>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Afin de garantir la confidentialité et la sécurité de vos données de vente, l'accès est restreint au compte propriétaire : <strong className="text-white">lescreateurs3d@gmail.com</strong>.
+                </p>
+              </div>
 
-            {loginError && (
-              <p className="text-red-400 text-xs font-bold bg-red-950/50 border border-red-900/50 p-4 rounded-xl leading-relaxed text-center">
-                {loginError}
-              </p>
-            )}
-
-            <button 
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full bg-white hover:bg-slate-50 text-slate-900 font-black py-4 px-6 rounded-xl shadow-lg hover:shadow-xl active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-3 text-sm border border-slate-200 disabled:opacity-50"
-            >
-              {loading ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-slate-600" />
-              ) : (
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
-                </svg>
+              {loginError && (
+                <p className="text-red-400 text-xs font-bold bg-red-950/50 border border-red-900/50 p-4 rounded-xl leading-relaxed text-center">
+                  {loginError}
+                </p>
               )}
-              {loading ? "Connexion en cours..." : "Se connecter avec Google"}
-            </button>
 
-            <div className="border-t border-slate-700/60 pt-4 text-center">
-              <span className="text-[10px] text-slate-500 font-black tracking-widest uppercase">Double Vérification Client & Serveur</span>
+              <div className="space-y-4">
+                {/* Option 1: Google Login */}
+                <div className="space-y-2">
+                  <span className="block text-[10px] font-black tracking-widest uppercase text-slate-500 text-left">Option 1: Google Sign-In (Recommandé)</span>
+                  <button 
+                    onClick={handleGoogleLogin}
+                    disabled={loading}
+                    className="w-full bg-white hover:bg-slate-50 text-slate-900 font-black py-4 px-6 rounded-xl shadow-lg hover:shadow-xl active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-3 text-sm border border-slate-200 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-slate-600" />
+                    ) : (
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                      </svg>
+                    )}
+                    {loading ? "Connexion en cours..." : "Se connecter avec Google"}
+                  </button>
+
+                  <div className="p-3 bg-blue-950/20 border border-blue-900/30 rounded-xl text-[10px] text-blue-300 leading-normal text-left">
+                    <strong>Note d'intégration :</strong> Si vous obtenez l'erreur <code className="bg-slate-900 px-1 py-0.5 rounded text-blue-200">auth/unauthorized-domain</code>, ajoutez ce domaine d'aperçu dans votre <em>Console Firebase → Authentication → Paramètres → Domaines autorisés</em>, ou utilisez l'Option de secours ci-dessous.
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="relative flex py-2 items-center">
+                  <div className="flex-grow border-t border-slate-700"></div>
+                  <span className="flex-shrink mx-4 text-slate-500 text-[10px] font-bold">OU</span>
+                  <div className="flex-grow border-t border-slate-700"></div>
+                </div>
+
+                {/* Option 2: Fallback Passcode */}
+                <form onSubmit={handlePasscodeLogin} className="space-y-3">
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-[10px] font-black tracking-widest uppercase text-slate-500 text-left">Option 2: Mot de Passe de Secours (Zéro Config)</label>
+                    </div>
+                    <div className="flex gap-2">
+                      <input 
+                        type="password"
+                        value={adminPasscode}
+                        onChange={(e) => setAdminPasscode(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-blue-500 text-white px-4 py-2.5 rounded-xl text-xs outline-none transition-all"
+                        placeholder="Entrez le mot de passe administrateur"
+                      />
+                      <button
+                        type="submit"
+                        disabled={loading || !adminPasscode.trim()}
+                        className="px-4 bg-white hover:bg-slate-50 text-slate-900 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                      >
+                        Valider
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed text-left">
+                      Saisissez le mot de passe administrateur. La vérification et la session sécurisée sont gérées en toute sécurité côté serveur.
+                    </p>
+                  </div>
+                </form>
+              </div>
+
+              <div className="border-t border-slate-700/60 pt-4 text-center">
+                <span className="text-[10px] text-slate-500 font-black tracking-widest uppercase">Double Vérification Client & Serveur</span>
+              </div>
             </div>
-          </div>
         </motion.div>
       </div>
     );
