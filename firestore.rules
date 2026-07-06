@@ -1,8 +1,37 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Global catch-all default deny
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && 
+             request.auth.token.email == "lescreateurs3d@gmail.com" && 
+             request.auth.token.email_verified == true;
+    }
+
+    // Courses collection
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Analytics Events collection
+    match /analytics_events/{eventId} {
+      // Public users can log tracking events (creates only)
+      allow create: if true;
+      // Only the admin can fetch and view the metrics dashboard
+      allow read: if isAdmin();
+      // No updates or deletions allowed to preserve data integrity
+      allow update, delete: if false;
     }
   }
 }

@@ -44,6 +44,10 @@
     "courses": {
       "schema": "Course",
       "description": "Collection of courses"
+    },
+    "analytics_events": {
+      "schema": "AnalyticsEvent",
+      "description": "Collection of visitor and action tracking events"
     }
   }
 }

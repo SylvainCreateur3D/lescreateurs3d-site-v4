@@ -5,9 +5,182 @@ import dotenv from "dotenv";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import multer from "multer";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, getDoc, collection, addDoc } from "firebase/firestore";
 
 // Load environment variables
 dotenv.config();
+
+// Token Verification Helpers for Admin Security
+async function verifyAdminToken(token: string): Promise<boolean> {
+  try {
+    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+    if (!fs.existsSync(configPath)) {
+      console.warn("[Server Auth] firebase-applet-config.json not found.");
+      return false;
+    }
+    const configData = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    const apiKey = configData.apiKey;
+    if (!apiKey) {
+      console.warn("[Server Auth] Firebase apiKey not found in config.");
+      return false;
+    }
+
+    // Call Firebase Auth REST API to verify ID token
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ idToken: token })
+    });
+
+    if (!response.ok) {
+      console.error("[Server Auth] Token validation failed:", await response.text());
+      return false;
+    }
+
+    const data = await response.json();
+    const user = data.users?.[0];
+    if (!user) return false;
+
+    const email = user.email;
+    const emailVerified = user.emailVerified;
+
+    console.log(`[Server Auth] Authenticated user email: ${email} (verified: ${emailVerified})`);
+    
+    // Check that email is EXACTLY the owner's email
+    return email === "lescreateurs3d@gmail.com";
+  } catch (err) {
+    console.error("[Server Auth] Exception verifying token:", err);
+    return false;
+  }
+}
+
+async function verifyAdminRequest(req: express.Request): Promise<boolean> {
+  const authHeader = req.headers["authorization"] || req.headers["x-admin-token"];
+  if (!authHeader) {
+    console.warn("[Server Auth] Access rejected: Missing authorization header.");
+    return false;
+  }
+
+  let token = "";
+  if (typeof authHeader === "string") {
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    } else {
+      token = authHeader;
+    }
+  }
+
+  if (!token) {
+    console.warn("[Server Auth] Access rejected: Empty token.");
+    return false;
+  }
+
+  return await verifyAdminToken(token);
+}
+
+async function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    const isAuthorized = await verifyAdminRequest(req);
+    if (!isAuthorized) {
+      return res.status(403).json({ 
+        success: false, 
+        error: "Accès refusé. Cette action nécessite d'être connecté avec le compte propriétaire (lescreateurs3d@gmail.com)." 
+      });
+    }
+    next();
+  } catch (err: any) {
+    res.status(500).json({ 
+      success: false, 
+      error: "Erreur de validation de l'autorisation serveur : " + err.message 
+    });
+  }
+}
+
+// Initialize server-side Firestore connection
+let firestoreDb: any = null;
+
+function getFirestoreDb() {
+  if (firestoreDb) return firestoreDb;
+  try {
+    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+    if (fs.existsSync(configPath)) {
+      const configData = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      const firebaseApp = initializeApp(configData, "server-app");
+      firestoreDb = getFirestore(firebaseApp, configData.firestoreDatabaseId);
+      console.log("[Server] Connected to Firestore database ID:", configData.firestoreDatabaseId);
+      return firestoreDb;
+    } else {
+      console.warn("[Server] firebase-applet-config.json not found.");
+    }
+  } catch (err) {
+    console.error("[Server] Error initializing Firestore:", err);
+  }
+  return null;
+}
+
+async function getSkoolCourseIdFromFirestore(courseId: string): Promise<string | null> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return null;
+    const docRef = doc(db, "courses", courseId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      console.log(`[Server] Found course "${courseId}" in Firestore. skoolCourseId is "${data.skoolCourseId}"`);
+      return data.skoolCourseId || null;
+    } else {
+      console.warn(`[Server] Course document "${courseId}" does not exist in Firestore.`);
+    }
+  } catch (err) {
+    console.error(`[Server] Error getting course "${courseId}" from Firestore:`, err);
+  }
+  return null;
+}
+
+async function logStripeSaleToFirestore(email: string, courseId: string, session: Stripe.Checkout.Session) {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return;
+
+    let courseTitle = courseId || "Formation Générique";
+    const courses = getCoursesFromServer();
+    const course = courses.find((c: any) => c.id === courseId);
+    if (course) {
+      courseTitle = course.title || course.name || courseTitle;
+    } else {
+      // Fetch from Firestore directly
+      try {
+        const courseDocRef = doc(db, "courses", courseId);
+        const courseSnap = await getDoc(courseDocRef);
+        if (courseSnap.exists()) {
+          courseTitle = courseSnap.data().title || courseSnap.data().name || courseTitle;
+        }
+      } catch (e) {
+        console.error("[Server] Error getting course name from Firestore:", e);
+      }
+    }
+
+    await addDoc(collection(db, "analytics_events"), {
+      type: "action",
+      page: "stripe_webhook",
+      action: "buy_course_success",
+      details: courseTitle,
+      email: email,
+      amount: session.amount_total ? session.amount_total / 100 : 0,
+      currency: session.currency?.toUpperCase() || "EUR",
+      visitorId: "stripe_webhook_" + (session.id || "unknown"),
+      device: "desktop",
+      referrer: "stripe",
+      timestamp: new Date()
+    });
+    console.log(`[Server] Webhook logged successful sale in Firestore for "${courseTitle}" (${email})`);
+  } catch (err) {
+    console.error("[Server] Error logging sale to Firestore:", err);
+  }
+}
 
 const app = express();
 const PORT = 3000;
@@ -169,15 +342,25 @@ app.post(
 
       console.log(`[Webhook] Resolved purchase for email: "${email}" and courseId: "${courseId}"`);
 
+      // Log the purchase event asynchronously to Firestore for Analytics/Admin
+      logStripeSaleToFirestore(email, courseId || "", session).catch(err => {
+        console.error("[Webhook] Failed to log sale to Firestore asynchronously:", err);
+      });
+
       if (!courseId) {
         console.warn("[Webhook] Could not map purchase to any known course ID.");
         return res.json({ received: true, error: "Course ID not found in metadata" });
       }
 
-      // Find the mapped Skool course ID in our server list
-      const courses = getCoursesFromServer();
-      const course = courses.find((c: any) => c.id === courseId);
-      const skoolCourseId = course?.skoolCourseId;
+      // Find the mapped Skool course ID
+      let skoolCourseId = await getSkoolCourseIdFromFirestore(courseId);
+
+      if (!skoolCourseId) {
+        console.log(`[Webhook] Falling back to courses.json lookup for courseId "${courseId}"`);
+        const courses = getCoursesFromServer();
+        const course = courses.find((c: any) => c.id === courseId);
+        skoolCourseId = course?.skoolCourseId;
+      }
 
       if (!skoolCourseId) {
         console.warn(`[Webhook] Course "${courseId}" does not have a mapped Skool Course ID. Invitation skipped.`);
@@ -242,7 +425,7 @@ app.post(
 app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 // Upload route
-app.post("/api/upload-video", upload.single("video"), (req, res) => {
+app.post("/api/upload-video", requireAdmin, upload.single("video"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
@@ -277,7 +460,7 @@ app.get("/api/courses", (req, res) => {
   res.json(courses);
 });
 
-app.post("/api/courses", (req, res) => {
+app.post("/api/courses", requireAdmin, (req, res) => {
   try {
     const courses = req.body;
     if (Array.isArray(courses)) {
@@ -290,8 +473,49 @@ app.post("/api/courses", (req, res) => {
   }
 });
 
+// Admin Stripe Sales: Fetch real paid checkout sessions directly from Stripe
+app.get("/api/admin/stripe-sales", requireAdmin, async (req, res) => {
+  try {
+    const stripe = getStripe();
+    const sessions = await stripe.checkout.sessions.list({
+      limit: 100,
+    });
+
+    const sales = sessions.data
+      .filter((session) => session.payment_status === "paid")
+      .map((session) => {
+        const email = session.customer_details?.email || session.customer_email || "Inconnu";
+        const amount = session.amount_total ? session.amount_total / 100 : 0;
+        const currency = session.currency?.toUpperCase() || "EUR";
+        const date = new Date(session.created * 1000).toISOString();
+        
+        // Determine course name
+        let courseName = session.metadata?.courseId || "Formation";
+        const courses = getCoursesFromServer();
+        const mappedCourse = courses.find((c: any) => c.id === courseName || c.skoolCourseId === courseName);
+        if (mappedCourse) {
+          courseName = mappedCourse.title;
+        }
+
+        return {
+          id: session.id,
+          email,
+          amount,
+          currency,
+          date,
+          courseName,
+        };
+      });
+
+    res.json({ success: true, sales });
+  } catch (error: any) {
+    console.error("[Stripe Sales API] Error fetching sessions:", error.message);
+    res.json({ success: false, error: error.message, sales: [] });
+  }
+});
+
 // 2. Sync Course with Stripe: Automatically creates Product, Price & Payment Links
-app.post("/api/stripe/sync-course", async (req, res) => {
+app.post("/api/stripe/sync-course", requireAdmin, async (req, res) => {
   try {
     const { id, title, slogan, price, originalPrice } = req.body;
     
@@ -411,7 +635,7 @@ app.post("/api/stripe/sync-course", async (req, res) => {
 });
 
 // 3. Sync Promo Code / Coupon with Stripe
-app.post("/api/stripe/sync-promo", async (req, res) => {
+app.post("/api/stripe/sync-promo", requireAdmin, async (req, res) => {
   try {
     const { code, discountType, discountValue } = req.body;
 

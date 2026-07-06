@@ -2,6 +2,8 @@ import { motion, useInView } from 'motion/react';
 import { useState, useEffect, useRef } from 'react';
 import LogicielsPage from './components/LogicielsPage';
 import FormationsCatalogPage from './components/FormationsCatalogPage';
+import AdminStatsPage from './components/AdminStatsPage';
+import { trackPageView, trackEvent } from './lib/analytics';
 import {
   ArrowRight,
   Youtube,
@@ -53,8 +55,15 @@ function AnimatedCounter({ end, suffix = "", duration = 2000 }: { end: number, s
 
 export default function App() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState<'home' | 'logiciels' | 'formations'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'logiciels' | 'formations' | 'admin'>('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Track page views on page changes
+  useEffect(() => {
+    if (currentPage !== 'admin') {
+      trackPageView(currentPage);
+    }
+  }, [currentPage]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -63,6 +72,9 @@ export default function App() {
         window.scrollTo({ top: 0, behavior: 'instant' });
       } else if (window.location.hash.startsWith('#formations-catalog')) {
         setCurrentPage('formations');
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } else if (window.location.hash === '#admin') {
+        setCurrentPage('admin');
         window.scrollTo({ top: 0, behavior: 'instant' });
       } else {
         setCurrentPage('home');
@@ -84,12 +96,14 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const navigateTo = (page: 'home' | 'logiciels' | 'formations', hash?: string) => {
+  const navigateTo = (page: 'home' | 'logiciels' | 'formations' | 'admin', hash?: string) => {
     setMobileMenuOpen(false);
     if (page === 'logiciels') {
       window.location.hash = '#logiciels';
     } else if (page === 'formations') {
       window.location.hash = '#formations-catalog';
+    } else if (page === 'admin') {
+      window.location.hash = '#admin';
     } else {
       if (hash) {
         window.location.hash = hash;
@@ -136,69 +150,73 @@ export default function App() {
     <div className="font-sans antialiased text-slate-900 min-h-screen selection:bg-blue-200 flex flex-col">
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#204289] text-white backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div onClick={() => navigateTo('home')} className="flex items-center gap-2 cursor-pointer group">
-            <img 
-              src="/logo seul PNG.png" 
-              alt="Les Créateurs 3D Logo" 
-              className="w-10 h-10 group-hover:scale-105 transition-transform object-contain"
-              referrerPolicy="no-referrer"
-            />
-            <span className="text-xl font-extrabold tracking-tight">Les Créateurs 3D</span>
+      {currentPage !== 'admin' && (
+        <header className="sticky top-0 z-50 bg-[#204289] text-white backdrop-blur-lg border-b border-white/20">
+          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div onClick={() => navigateTo('home')} className="flex items-center gap-2 cursor-pointer group">
+              <img 
+                src="/logo seul PNG.png" 
+                alt="Les Créateurs 3D Logo" 
+                className="w-10 h-10 group-hover:scale-105 transition-transform object-contain"
+                referrerPolicy="no-referrer"
+              />
+              <span className="text-xl font-extrabold tracking-tight">Les Créateurs 3D</span>
+            </div>
+            
+            <nav className="hidden md:flex items-center gap-8">
+              <button onClick={() => navigateTo('home', '#accompagnements')} className={`text-sm font-bold cursor-pointer transition-all ${currentPage === 'home' ? 'text-white hover:text-blue-200' : 'text-blue-100 hover:text-white'}`}>Nos accompagnements & formations</button>
+              <button onClick={() => navigateTo('logiciels')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'logiciels' ? 'bg-[#06bcbf] text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Nos logiciels et outils</button>
+            </nav>
+            
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  trackEvent('calendly_click', currentPage);
+                  (window as any).Calendly?.initPopupWidget({url: 'https://calendly.com/lescreateurs3d/appel-telephonique-formation'});
+                }}
+                className="hidden md:inline-flex items-center justify-center px-6 py-2.5 text-sm font-bold text-slate-900 bg-white rounded-full hover:bg-blue-50 transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
+              >
+                Parlons de votre projet
+              </button>
+              <button 
+                className="md:hidden text-white p-2 hover:bg-white/10 rounded-lg cursor-pointer"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
-          
-          <nav className="hidden md:flex items-center gap-8">
-            <button onClick={() => navigateTo('home', '#accompagnements')} className={`text-sm font-bold cursor-pointer transition-all ${currentPage === 'home' ? 'text-white hover:text-blue-200' : 'text-blue-100 hover:text-white'}`}>Nos accompagnements & formations</button>
-            <button onClick={() => navigateTo('logiciels')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'logiciels' ? 'bg-[#06bcbf] text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Nos logiciels et outils</button>
-          </nav>
-          
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                (window as any).Calendly?.initPopupWidget({url: 'https://calendly.com/lescreateurs3d/appel-telephonique-formation'});
-              }}
-              className="hidden md:inline-flex items-center justify-center px-6 py-2.5 text-sm font-bold text-slate-900 bg-white rounded-full hover:bg-blue-50 transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
-            >
-              Parlons de votre projet
-            </button>
-            <button 
-              className="md:hidden text-white p-2 hover:bg-white/10 rounded-lg cursor-pointer"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-        </div>
 
-        {/* Mobile Menu Overlay */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#204289] border-t border-white/10 px-6 py-6 pb-8 space-y-4 absolute top-20 left-0 w-full z-50 shadow-2xl animate-fade-in">
-            <button 
-              onClick={() => navigateTo('home', '#accompagnements')} 
-              className="block text-left w-full text-base font-extrabold text-white hover:text-blue-200 py-1"
-            >
-              Nos accompagnements & formations
-            </button>
-            <button 
-              onClick={() => navigateTo('logiciels')} 
-              className="block text-left w-full text-lg font-black text-[#06bcbf] hover:text-cyan-300 py-2 border-t border-white/10"
-            >
-              Nos Logiciels Web (IzyPano & Izy3D)
-            </button>
-            <button 
-              onClick={() => {
-                setMobileMenuOpen(false);
-                (window as any).Calendly?.initPopupWidget({url: 'https://calendly.com/lescreateurs3d/appel-telephonique-formation'});
-              }}
-              className="w-full text-center block mt-6 px-6 py-3.5 text-sm font-bold text-slate-900 bg-white rounded-full hover:bg-blue-50 transition-all shadow-md"
-            >
-              Parlons de votre projet
-            </button>
-          </div>
-        )}
-      </header>
+          {/* Mobile Menu Overlay */}
+          {mobileMenuOpen && (
+            <div className="md:hidden bg-[#204289] border-t border-white/10 px-6 py-6 pb-8 space-y-4 absolute top-20 left-0 w-full z-50 shadow-2xl animate-fade-in">
+              <button 
+                onClick={() => navigateTo('home', '#accompagnements')} 
+                className="block text-left w-full text-base font-extrabold text-white hover:text-blue-200 py-1"
+              >
+                Nos accompagnements & formations
+              </button>
+              <button 
+                onClick={() => navigateTo('logiciels')} 
+                className="block text-left w-full text-lg font-black text-[#06bcbf] hover:text-cyan-300 py-2 border-t border-white/10"
+              >
+                Nos Logiciels Web (IzyPano & Izy3D)
+              </button>
+              <button 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  trackEvent('calendly_click', currentPage);
+                  (window as any).Calendly?.initPopupWidget({url: 'https://calendly.com/lescreateurs3d/appel-telephonique-formation'});
+                }}
+                className="w-full text-center block mt-6 px-6 py-3.5 text-sm font-bold text-slate-900 bg-white rounded-full hover:bg-blue-50 transition-all shadow-md"
+              >
+                Parlons de votre projet
+              </button>
+            </div>
+          )}
+        </header>
+      )}
 
       <main className="flex-grow">
         {currentPage === 'home' && (
@@ -899,10 +917,13 @@ export default function App() {
         {currentPage === 'formations' && (
           <FormationsCatalogPage onGoBack={() => navigateTo('home')} />
         )}
+        {currentPage === 'admin' && (
+          <AdminStatsPage onGoBack={() => navigateTo('home')} />
+        )}
       </main>
 
       {/* Footer */}
-      {currentPage !== 'formations' && (
+      {currentPage !== 'formations' && currentPage !== 'admin' && (
         <footer className="bg-slate-900 text-slate-400 py-20 border-t-4 border-blue-600">
           <div className="max-w-7xl mx-auto px-6 pb-[33.2px]">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 border-b border-slate-800 pb-16">
@@ -961,7 +982,12 @@ export default function App() {
             </div>
             
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-sm font-bold">
-              <p>© {new Date().getFullYear()} Les Créateurs 3D. Tous droits réservés.</p>
+              <p 
+                onClick={(e) => { if (e.detail === 3) { navigateTo('admin'); } }} 
+                className="cursor-default select-none"
+              >
+                © {new Date().getFullYear()} Les Créateurs 3D. Tous droits réservés.
+              </p>
               <div className="flex gap-8">
                 <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
                 <a href="#" className="hover:text-white transition-colors">CGV</a>
