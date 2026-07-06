@@ -2819,6 +2819,23 @@ const handleSave = async (course) => {
                   </div>
 
                   <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200/80 shadow-sm">
+                    {selectedCourse && selectedCourse.originalPrice > selectedCourse.price && selectedCourse.promoDeadline && (
+                      <div className="max-w-xl mx-auto mb-8 bg-amber-500/5 border border-amber-500/10 rounded-[2rem] p-5">
+                        <div className="text-center mb-3">
+                          <p className="text-xs font-black uppercase tracking-wider text-amber-600 flex items-center justify-center gap-1.5">
+                            <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                            Profitez du tarif réduit avant l'expiration de l'offre
+                          </p>
+                        </div>
+                        <CountdownTimer 
+                          deadline={selectedCourse.promoDeadline} 
+                          variant="tile" 
+                          onExpire={handleTimerExpire} 
+                          promoLabel={selectedCourse.promoLabel} 
+                        />
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
                       <button
                         onClick={() => setDemoActiveVideo('chantier')}
