@@ -2622,14 +2622,38 @@ const handleSave = async (course) => {
                       
                       return (
                         <>
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-1.5">
                             {hasDiscount && (
                               <div className="flex flex-wrap gap-1.5 mb-1">
                                 {calculated.isPromoTimerActive && (
-                                  <span className="text-[9px] bg-amber-500 text-white font-black uppercase tracking-widest px-2 py-0.5 rounded-md">{selectedCourse.promoLabel || "Vente Flash active"}</span>
+                                  <motion.span 
+                                    animate={{ 
+                                      scale: [1, 1.05, 1],
+                                      backgroundColor: ["#f59e0b", "#ea580c", "#f59e0b"],
+                                      boxShadow: [
+                                        "0 0 0 rgba(245, 158, 11, 0)",
+                                        "0 0 10px rgba(245, 158, 11, 0.4)",
+                                        "0 0 0 rgba(245, 158, 11, 0)"
+                                      ]
+                                    }}
+                                    transition={{ 
+                                      duration: 3, 
+                                      repeat: Infinity,
+                                      ease: "easeInOut"
+                                    }}
+                                    className="text-[9px] text-white font-black uppercase tracking-widest px-2 py-0.5 rounded-md"
+                                  >
+                                    {selectedCourse.promoLabel || "Vente Flash active"}
+                                  </motion.span>
                                 )}
                                 {appliedPromo && (
-                                  <span className="text-[9px] bg-emerald-600 text-white font-black uppercase tracking-widest px-2 py-0.5 rounded-md">Code {appliedPromo.code} (-{appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}%` : `${appliedPromo.discountValue}€`})</span>
+                                  <motion.span 
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="text-[9px] bg-emerald-600 text-white font-black uppercase tracking-widest px-2 py-0.5 rounded-md"
+                                  >
+                                    Code {appliedPromo.code} (-{appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}%` : `${appliedPromo.discountValue}€`})
+                                  </motion.span>
                                 )}
                               </div>
                             )}
@@ -2639,10 +2663,21 @@ const handleSave = async (course) => {
                                 <>
                                   <span className="text-2xl text-slate-400 line-through decoration-red-500 decoration-2 font-bold mt-1">{selectedCourse.originalPrice} €</span>
                                   {calculated.isPromoTimerActive && !appliedPromo && (
-                                    <span className="ml-auto text-[10px] font-black uppercase text-slate-950 bg-amber-400 px-2 py-1 rounded-full shadow-md flex items-center gap-0.5 border border-amber-300 animate-pulse">
+                                    <motion.span 
+                                      animate={{ 
+                                        y: [0, -3, 0],
+                                        scale: [1, 1.04, 1]
+                                      }}
+                                      transition={{ 
+                                        duration: 2.5, 
+                                        repeat: Infinity,
+                                        ease: "easeInOut"
+                                      }}
+                                      className="ml-auto text-[10px] font-black uppercase text-slate-950 bg-amber-400 px-2 py-1 rounded-full shadow-md flex items-center gap-0.5 border border-amber-300"
+                                    >
                                       <Percent className="w-3 h-3" />
                                       -{Math.round(((selectedCourse.originalPrice - selectedCourse.price) / selectedCourse.originalPrice) * 100)}% de remise
-                                    </span>
+                                    </motion.span>
                                   )}
                                 </>
                               )}
@@ -2844,35 +2879,37 @@ const handleSave = async (course) => {
                       }
                       
                       return (
-                        <div className={`max-w-xl mx-auto mb-8 rounded-[2rem] p-5 border shadow-sm transition-all duration-300 ${ 
+                        <div className={`max-w-2xl mx-auto mb-8 rounded-[2rem] p-6 border shadow-sm transition-all duration-300 ${ 
                           isExpired 
                             ? 'bg-slate-50/50 border-slate-200/80 text-center' 
                             : 'bg-amber-500/5 border-amber-500/10'
                         }`}>
                           {!isExpired ? (
                             <>
-                              <div className="text-center mb-3">
-                                <p className="text-xs font-black uppercase tracking-wider text-amber-600 flex items-center justify-center gap-1.5">
-                                  <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                              <div className="text-center mb-4">
+                                <p className="text-sm font-black uppercase tracking-wider text-amber-600 flex items-center justify-center gap-1.5">
+                                  <Flame className="w-5 h-5 text-orange-500 animate-pulse" />
                                   Profitez du tarif réduit avant l'expiration de l'offre
                                 </p>
                               </div>
                               <CountdownTimer 
                                 deadline={selectedCourse.promoDeadline} 
                                 variant="tile" 
+                                size="large"
                                 onExpire={handleTimerExpire} 
                                 promoLabel={selectedCourse.promoLabel} 
                               />
                             </>
                           ) : ( 
-                            <div className="flex flex-col items-center gap-3 py-1">
-                              <p className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center justify-center gap-1.5 text-center leading-relaxed">
-                                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                            <div className="flex flex-col items-center gap-4 py-1.5">
+                              <p className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center justify-center gap-1.5 text-center leading-relaxed">
+                                <Clock className="w-5 h-5 text-slate-400 shrink-0" />
                                 L'offre de lancement est terminée — Tarif standard en vigueur
                               </p>
                               <CountdownTimer 
                                 deadline={selectedCourse.promoDeadline} 
                                 variant="tile" 
+                                size="large"
                                 onExpire={handleTimerExpire} 
                                 promoLabel={selectedCourse.promoLabel} 
                               />

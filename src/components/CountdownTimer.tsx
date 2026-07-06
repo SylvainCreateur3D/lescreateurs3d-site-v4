@@ -6,9 +6,10 @@ interface CountdownTimerProps {
   variant: 'tile' | 'banner';
   onExpire?: () => void;
   promoLabel?: string;
+  size?: 'normal' | 'large';
 }
 
-export default function CountdownTimer({ deadline, variant, onExpire, promoLabel }: CountdownTimerProps) {
+export default function CountdownTimer({ deadline, variant, onExpire, promoLabel, size = 'normal' }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
     hours: number;
@@ -71,38 +72,69 @@ export default function CountdownTimer({ deadline, variant, onExpire, promoLabel
   const padZero = (num: number) => String(num).padStart(2, '0');
 
   if (variant === 'tile') {
+    const isLarge = size === 'large';
     return (
-      <div className="bg-gradient-to-br from-amber-500/12 via-orange-500/8 to-transparent border-2 border-amber-400/40 rounded-[2rem] p-5 flex flex-col gap-4 shadow-md shadow-amber-500/5 relative overflow-hidden group/timer scale-[1.02]">
+      <div className={`bg-gradient-to-br from-amber-500/12 via-orange-500/8 to-transparent border-2 border-amber-400/40 rounded-[2.25rem] flex flex-col shadow-md shadow-amber-500/5 relative overflow-hidden group/timer scale-[1.02] ${
+        isLarge ? 'p-6 md:p-7 gap-5' : 'p-5 gap-4'
+      }`}>
         {/* Decorative subtle background elements */}
         <div className="absolute -top-8 -right-8 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none group-hover/timer:scale-150 transition-transform duration-500"></div>
         <div className="absolute -bottom-8 -left-8 w-16 h-16 bg-orange-500/5 rounded-full blur-lg pointer-events-none"></div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-black text-amber-600 dark:text-amber-500 uppercase tracking-wider">
-            <Flame className="w-5 h-5 text-orange-500 animate-pulse shrink-0" />
+          <div className={`flex items-center uppercase tracking-wider font-black text-amber-600 dark:text-amber-500 ${
+            isLarge ? 'gap-2.5 text-sm' : 'gap-2 text-xs'
+          }`}>
+            <Flame className={`text-orange-500 animate-pulse shrink-0 ${isLarge ? 'w-6 h-6' : 'w-5 h-5'}`} />
             <span>Offre Limitée</span>
           </div>
-          <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-orange-700 bg-orange-100 px-3 py-1 rounded-md animate-pulse border border-orange-200/50">
+          <span className={`font-black uppercase tracking-wider text-orange-700 bg-orange-100 px-3 py-1 rounded-md animate-pulse border border-orange-200/50 ${
+            isLarge ? 'text-xs md:text-sm' : 'text-[10px] md:text-xs'
+          }`}>
             {promoLabel || "Promo active"}
           </span>
         </div>
 
-        <div className="grid grid-cols-4 gap-3 text-center relative z-10">
-          <div className="bg-gradient-to-b from-amber-500/20 to-orange-500/10 border border-amber-500/15 rounded-2xl py-3 px-1.5 shadow-sm">
-            <div className="text-xl md:text-2xl font-black text-orange-950 font-mono tracking-tight leading-none">{padZero(timeLeft.days)}</div>
-            <div className="text-[9px] md:text-[10px] font-black uppercase text-amber-800 tracking-wider mt-1.5">Jours</div>
+        <div className={`grid grid-cols-4 text-center relative z-10 ${isLarge ? 'gap-4' : 'gap-3'}`}>
+          <div className={`bg-gradient-to-b from-amber-500/20 to-orange-500/10 border border-amber-500/15 rounded-2xl shadow-sm ${
+            isLarge ? 'py-4 px-2' : 'py-3 px-1.5'
+          }`}>
+            <div className={`font-black text-orange-950 font-mono tracking-tight leading-none ${
+              isLarge ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'
+            }`}>{padZero(timeLeft.days)}</div>
+            <div className={`font-black uppercase text-amber-800 tracking-wider mt-1.5 ${
+              isLarge ? 'text-[10px] md:text-xs' : 'text-[9px] md:text-[10px]'
+            }`}>Jours</div>
           </div>
-          <div className="bg-gradient-to-b from-amber-500/20 to-orange-500/10 border border-amber-500/15 rounded-2xl py-3 px-1.5 shadow-sm">
-            <div className="text-xl md:text-2xl font-black text-orange-950 font-mono tracking-tight leading-none">{padZero(timeLeft.hours)}</div>
-            <div className="text-[9px] md:text-[10px] font-black uppercase text-amber-800 tracking-wider mt-1.5">Heures</div>
+          <div className={`bg-gradient-to-b from-amber-500/20 to-orange-500/10 border border-amber-500/15 rounded-2xl shadow-sm ${
+            isLarge ? 'py-4 px-2' : 'py-3 px-1.5'
+          }`}>
+            <div className={`font-black text-orange-950 font-mono tracking-tight leading-none ${
+              isLarge ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'
+            }`}>{padZero(timeLeft.hours)}</div>
+            <div className={`font-black uppercase text-amber-800 tracking-wider mt-1.5 ${
+              isLarge ? 'text-[10px] md:text-xs' : 'text-[9px] md:text-[10px]'
+            }`}>Heures</div>
           </div>
-          <div className="bg-gradient-to-b from-amber-500/20 to-orange-500/10 border border-amber-500/15 rounded-2xl py-3 px-1.5 shadow-sm">
-            <div className="text-xl md:text-2xl font-black text-orange-950 font-mono tracking-tight leading-none">{padZero(timeLeft.minutes)}</div>
-            <div className="text-[9px] md:text-[10px] font-black uppercase text-amber-800 tracking-wider mt-1.5">Min</div>
+          <div className={`bg-gradient-to-b from-amber-500/20 to-orange-500/10 border border-amber-500/15 rounded-2xl shadow-sm ${
+            isLarge ? 'py-4 px-2' : 'py-3 px-1.5'
+          }`}>
+            <div className={`font-black text-orange-950 font-mono tracking-tight leading-none ${
+              isLarge ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'
+            }`}>{padZero(timeLeft.minutes)}</div>
+            <div className={`font-black uppercase text-amber-800 tracking-wider mt-1.5 ${
+              isLarge ? 'text-[10px] md:text-xs' : 'text-[9px] md:text-[10px]'
+            }`}>Min</div>
           </div>
-          <div className="bg-gradient-to-b from-amber-500/25 to-orange-500/15 border border-amber-500/20 rounded-2xl py-3 px-1.5 shadow-sm animate-pulse">
-            <div className="text-xl md:text-2xl font-black text-orange-600 font-mono tracking-tight leading-none">{padZero(timeLeft.seconds)}</div>
-            <div className="text-[9px] md:text-[10px] font-black uppercase text-orange-700 tracking-wider mt-1.5">Sec</div>
+          <div className={`bg-gradient-to-b from-amber-500/25 to-orange-500/15 border border-amber-500/20 rounded-2xl shadow-sm animate-pulse ${
+            isLarge ? 'py-4 px-2' : 'py-3 px-1.5'
+          }`}>
+            <div className={`font-black text-orange-600 font-mono tracking-tight leading-none ${
+              isLarge ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'
+            }`}>{padZero(timeLeft.seconds)}</div>
+            <div className={`font-black uppercase text-orange-700 tracking-wider mt-1.5 ${
+              isLarge ? 'text-[10px] md:text-xs' : 'text-[9px] md:text-[10px]'
+            }`}>Sec</div>
           </div>
         </div>
       </div>
