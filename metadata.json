@@ -1,0 +1,6 @@
+{
+  "name": "Les Créateurs 3D",
+  "description": "A landing page concept for a modern 3D Archviz and AI training platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

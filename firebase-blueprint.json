@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "Course": {
+      "title": "Course",
+      "description": "A formation course",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "slogan": { "type": "string" },
+        "category": { "type": "string" },
+        "duration": { "type": "string" },
+        "lessonsCount": { "type": "number" },
+        "modulesCount": { "type": "number" },
+        "level": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "badge": { "type": "string" },
+        "gradient": { "type": "string" },
+        "accentColor": { "type": "string" },
+        "stripeStandardLink": { "type": "string" },
+        "stripePromoLink": { "type": "string" },
+        "skoolCourseId": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "description": { "type": "string" },
+        "outcomes": { "type": "array" },
+        "audience": { "type": "array" },
+        "includes": { "type": "array" },
+        "modules": { "type": "array" },
+        "testimonials": { "type": "array" },
+        "faq": { "type": "array" },
+        "published": { "type": "boolean" },
+        "featured": { "type": "boolean" },
+        "order": { "type": "number" },
+        "promoDeadline": { "type": "string" },
+        "promoLabel": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    }
+  },
+  "firestore": {
+    "courses": {
+      "schema": "Course",
+      "description": "Collection of courses"
+    }
+  }
+}

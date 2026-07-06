@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+}
+
+html {
+  font-size: 80%;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: #FDFBFA; /* Warm off-white */
+  color: #0f172a; /* Slate 900 for high text readability */
+}
+
+/* Fix: Prevent Elfsight from adding a blank white space / layout gap at the bottom of the webpage */
+div[class^="elfsight-app-"] {
+  position: fixed !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  z-index: 99999 !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: visible !important;
+}
+
+/* Scroll-triggered premium fade-in-up animation */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Infinite Marquee Animation for Google Reviews */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 40s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+
