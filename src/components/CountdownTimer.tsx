@@ -19,11 +19,15 @@ export default function CountdownTimer({ deadline, variant, onExpire, promoLabel
   }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false });
 
   useEffect(() => {
+    let hasExpired = false;
     const calculateTimeLeft = () => {
       const difference = +new Date(deadline) - +new Date();
       
       if (difference <= 0) {
-        if (onExpire) onExpire();
+        if (!hasExpired && onExpire) {
+          hasExpired = true;
+          onExpire();
+        }
         return { days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true };
       }
 

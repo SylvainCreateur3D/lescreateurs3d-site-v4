@@ -44,6 +44,12 @@ export interface Course {
   promoLabel?: string;
   stripeStandardLink?: string;
   stripePromoLink?: string;
+  stripeInstallmentsLink?: string;
+  stripeInstallmentsPromoLink?: string;
+  installmentsEnabled?: boolean;
+  installmentsCount?: number;
+  installmentsPrice?: number;
+  installmentsPromoPrice?: number;
   skoolCourseId?: string;
   videoUrl?: string;
   imageUrl?: string;

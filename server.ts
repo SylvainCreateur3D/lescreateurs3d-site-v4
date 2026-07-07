@@ -22,6 +22,12 @@ async function verifyAdminToken(token: string): Promise<boolean> {
     if (activeAdminSessions.has(token)) {
       return true;
     }
+    
+    // If it's a custom session token but not in active sessions, it's invalid
+    if (token.startsWith("l3d_sess_")) {
+      console.warn("[Server Auth] Invalid or expired custom session token.");
+      return false;
+    }
 
     const configPath = path.join(process.cwd(), "firebase-applet-config.json");
     if (!fs.existsSync(configPath)) {
@@ -45,7 +51,12 @@ async function verifyAdminToken(token: string): Promise<boolean> {
     });
 
     if (!response.ok) {
-      console.error("[Server Auth] Token validation failed:", await response.text());
+      if (response.status === 400) {
+        return false;
+      }
+      const errorText = await response.text();
+      console.error(`[Server Auth] Token validation failed (Status: ${response.status}):`, errorText);
+      console.error(`[Server Auth] Token being validated (length ${token.length}): ${token.substring(0, 20)}...`);
       return false;
     }
 
@@ -313,6 +324,44 @@ app.post(
         return res.status(400).send("No email found in session");
       }
 
+      // If this session has a subscription, check if it's an installment plan and auto-limit it
+      if (session.subscription) {
+        try {
+          const stripe = getStripe();
+          const subId = session.subscription as string;
+          const subscription = await stripe.subscriptions.retrieve(subId);
+          const priceId = subscription.items.data[0]?.price?.id;
+          if (priceId) {
+            const price = await stripe.prices.retrieve(priceId);
+            if (price.metadata && price.metadata.type === "installments") {
+              const installmentsCount = parseInt(price.metadata.installmentsCount || "3", 10);
+              console.log(`[Webhook] Detected installment subscription ${subId}. Restricting to ${installmentsCount} cycles.`);
+              
+              const schedule = await stripe.subscriptionSchedules.create({
+                from_subscription: subId,
+              });
+
+              const phases = schedule.phases.map((phase) => ({
+                items: phase.items.map(item => ({
+                  price: typeof item.price === "string" ? item.price : item.price.id,
+                  quantity: item.quantity,
+                })),
+                iterations: installmentsCount,
+                start_date: phase.start_date,
+              }));
+
+              await stripe.subscriptionSchedules.update(schedule.id, {
+                end_behavior: "cancel",
+                phases: phases,
+              });
+              console.log(`[Webhook] Successfully restricted subscription schedule ${schedule.id} to ${installmentsCount} iterations with auto-cancel.`);
+            }
+          }
+        } catch (subErr: any) {
+          console.error("[Webhook Error] Failed to configure installments schedule:", subErr.message);
+        }
+      }
+
       // Try to determine courseId
       let courseId = session.metadata?.courseId;
 
@@ -564,7 +613,7 @@ app.get("/api/admin/stripe-sales", requireAdmin, async (req, res) => {
 // 2. Sync Course with Stripe: Automatically creates Product, Price & Payment Links
 app.post("/api/stripe/sync-course", requireAdmin, async (req, res) => {
   try {
-    const { id, title, slogan, price, originalPrice } = req.body;
+    const { id, title, slogan, price, originalPrice, installmentsEnabled, installmentsCount, installmentsPrice, installmentsPromoPrice } = req.body;
     
     if (!id || !title || !price) {
       return res.status(400).json({ error: "id, title and price are required." });
@@ -585,18 +634,25 @@ app.post("/api/stripe/sync-course", requireAdmin, async (req, res) => {
       p => p.metadata && p.metadata.courseId === id
     );
 
+    const count = Number(installmentsCount || 3);
+    const monthlyPrice = installmentsPrice ? Number(installmentsPrice) : (Number(price) / count);
+    const productName = installmentsEnabled ? `${title} (Paiement en ${count} fois)` : title;
+    const productDescription = installmentsEnabled 
+      ? `Paiement en ${count} mensualités` 
+      : (slogan || undefined);
+
     if (foundProduct) {
       // Update existing product to keep it in sync
       stripeProduct = await stripe.products.update(foundProduct.id, {
-        name: title,
-        description: slogan || undefined,
+        name: productName,
+        description: productDescription,
       });
       console.log(`Found existing Stripe product: ${stripeProduct.id}`);
     } else {
       // Create new product
       stripeProduct = await stripe.products.create({
-        name: title,
-        description: slogan || undefined,
+        name: productName,
+        description: productDescription,
         metadata: {
           courseId: id,
         },
@@ -666,10 +722,57 @@ app.post("/api/stripe/sync-course", requireAdmin, async (req, res) => {
       console.log(`Created Stripe promo payment link: ${promoPaymentLink.url}`);
     }
 
+    // Step E: Create Installments Price & Payment Link if installments are enabled
+    let stripeInstallmentsLinkUrl = "";
+    let stripeInstallmentsPromoLinkUrl = "";
+    if (installmentsEnabled) {
+      const count = Number(installmentsCount || 3);
+      
+      // Standard Installments
+      const monthlyPrice = installmentsPrice ? Number(installmentsPrice) : (Number(baseAmount / 100) / count);
+      const monthlyAmount = Math.round(monthlyPrice * 100);
+
+      const installmentsPriceObj = await stripe.prices.create({
+        product: stripeProduct.id,
+        unit_amount: monthlyAmount,
+        currency: "eur",
+        recurring: { interval: "month", interval_count: 1 },
+        metadata: { type: "installments", courseId: id, installmentsCount: String(count) }
+      });
+
+      const installmentsPaymentLink = await stripe.paymentLinks.create({
+        line_items: [{ price: installmentsPriceObj.id, quantity: 1 }],
+        allow_promotion_codes: true,
+        metadata: { courseId: id, type: "installments", installmentsCount: String(count) }
+      });
+      stripeInstallmentsLinkUrl = installmentsPaymentLink.url;
+
+      // Promo Installments
+      if (installmentsPromoPrice) {
+        const monthlyPromoAmount = Math.round(Number(installmentsPromoPrice) * 100);
+        const installmentsPromoPriceObj = await stripe.prices.create({
+          product: stripeProduct.id,
+          unit_amount: monthlyPromoAmount,
+          currency: "eur",
+          recurring: { interval: "month", interval_count: 1 },
+          metadata: { type: "installments_promo", courseId: id, installmentsCount: String(count) }
+        });
+
+        const installmentsPromoPaymentLink = await stripe.paymentLinks.create({
+          line_items: [{ price: installmentsPromoPriceObj.id, quantity: 1 }],
+          allow_promotion_codes: true,
+          metadata: { courseId: id, type: "installments_promo", installmentsCount: String(count) }
+        });
+        stripeInstallmentsPromoLinkUrl = installmentsPromoPaymentLink.url;
+      }
+    }
+
     res.json({
       success: true,
       stripeStandardLink: standardPaymentLink.url,
       stripePromoLink: promoPaymentLinkUrl || standardPaymentLink.url,
+      stripeInstallmentsLink: stripeInstallmentsLinkUrl,
+      stripeInstallmentsPromoLink: stripeInstallmentsPromoLinkUrl || stripeInstallmentsLinkUrl,
       message: `Successfully synchronized "${title}" with Stripe! Links generated automatically.`
     });
 

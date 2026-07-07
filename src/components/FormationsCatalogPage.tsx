@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactPlayer from 'react-player';
 import { db, handleFirestoreError, OperationType, storage, auth } from '../lib/firebase';
@@ -89,7 +89,12 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
   
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
+  const [paymentMode, setPaymentMode] = useState<'comptant' | 'installments'>('comptant');
   const [adminTab, setAdminTab] = useState<'courses' | 'promos' | 'security'>('courses');
+
+  useEffect(() => {
+    setPaymentMode('comptant');
+  }, [selectedCourseId]);
   
   const [newPromoCode, setNewPromoCode] = useState<{
     code: string;
@@ -152,13 +157,38 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
       const separator = stripeLink.includes('?') ? '&' : '?';
       stripeLink = `${stripeLink}${separator}prefilled_promo_code=${appliedPromo.code}`;
     }
+
+    // Calculs de paiement en plusieurs fois (échéances)
+    let stripeInstallmentsLink = course.stripeInstallmentsLink;
+    let stripeInstallmentsPromoLink = course.stripeInstallmentsPromoLink || stripeInstallmentsLink;
+    
+    if (!stripeInstallmentsLink && course.installmentsEnabled) {
+      stripeInstallmentsLink = `https://buy.stripe.com/mock-installments-${course.id}`;
+      stripeInstallmentsPromoLink = stripeInstallmentsLink;
+    }
+
+    let finalInstallmentsLink = (isPromoTimerActive && stripeInstallmentsPromoLink) ? stripeInstallmentsPromoLink : stripeInstallmentsLink;
+    
+    if (appliedPromo && appliedPromo.stripeSynced && finalInstallmentsLink) {
+      const separator = finalInstallmentsLink.includes('?') ? '&' : '?';
+      finalInstallmentsLink = `${finalInstallmentsLink}${separator}prefilled_promo_code=${appliedPromo.code}`;
+    }
+    
+    const installmentsCount = course.installmentsCount || 3;
+    const installmentsPrice = (isPromoTimerActive && course.installmentsPromoPrice) 
+      ? course.installmentsPromoPrice 
+      : (course.installmentsPrice || Math.round((finalPrice / installmentsCount) * 100) / 100);
     
     return {
       basePrice,
       finalPrice,
       promoDiscount,
       isPromoTimerActive,
-      stripeLink
+      stripeLink,
+      stripeInstallmentsLink: finalInstallmentsLink,
+      installmentsCount,
+      installmentsPrice,
+      totalInstallmentsPrice: Math.round(installmentsPrice * installmentsCount * 100) / 100
     };
   };
 
@@ -221,9 +251,9 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [expiryTrigger, setExpiryTrigger] = useState<number>(0);
 
-  const handleTimerExpire = () => {
+  const handleTimerExpire = useCallback(() => {
     setExpiryTrigger(prev => prev + 1);
-  };
+  }, []);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isUploadingMedia, setIsUploadingMedia] = useState<boolean>(false);
 
@@ -382,15 +412,17 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
         setCourses(coursesData);
         // Sync with server local file as fallback
         try {
-          const token = sessionStorage.getItem('l3d_admin_token') || '';
-          fetch('/api/courses', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(coursesData)
-          }).catch(err => console.error('Error in background sync:', err));
+          const token = sessionStorage.getItem('l3d_admin_token');
+          if (token) {
+            fetch('/api/courses', {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify(coursesData)
+            }).catch(err => console.error('Error in background sync:', err));
+          }
         } catch (e) {}
       }
     }, (error) => {
@@ -439,9 +471,16 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
     const handleHashAndQuery = () => {
       const hash = window.location.hash;
       
-      // Check for ?course=
-      if (hash.includes('?course=')) {
-        const courseId = hash.split('?course=')[1]?.split('&')[0];
+      // Check for ?course= in hash or search
+      if (hash.includes('?course=') || window.location.search.includes('course=')) {
+        let courseId = null;
+        if (hash.includes('?course=')) {
+          courseId = hash.split('?course=')[1]?.split('&')[0];
+        } else {
+          const params = new URLSearchParams(window.location.search);
+          courseId = params.get('course');
+        }
+        
         if (courseId) {
           setSelectedCourseId(courseId);
           setIsAdminView(false);
@@ -583,7 +622,10 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
         });
 
         const data = await response.json();
-        if (response.ok && data.success) {
+        if (response.status === 400 || response.status === 401 || response.status === 403) {
+          sessionStorage.removeItem('l3d_admin_token');
+          alert('Session expirée. Veuillez vous reconnecter.');
+        } else if (response.ok && data.success) {
           isSynced = true;
           alert(`✓ Code promo "${codeUpper}" créé et configuré automatiquement sur Stripe !`);
         } else {
@@ -696,15 +738,33 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
             title: editingCourse.title,
             slogan: editingCourse.slogan,
             price: Number(editingCourse.price),
-            originalPrice: Number(editingCourse.originalPrice)
+            originalPrice: Number(editingCourse.originalPrice),
+            installmentsEnabled: !!editingCourse.installmentsEnabled,
+            installmentsCount: editingCourse.installmentsCount ? Number(editingCourse.installmentsCount) : undefined,
+            installmentsPrice: editingCourse.installmentsPrice ? Number(editingCourse.installmentsPrice) : undefined,
+            installmentsPromoPrice: editingCourse.installmentsPromoPrice ? Number(editingCourse.installmentsPromoPrice) : undefined,
+            stripeInstallmentsPromoLink: editingCourse.stripeInstallmentsPromoLink
           })
         });
 
         const data = await response.json();
-        if (response.ok && data.success) {
+        if (response.status === 400 || response.status === 401 || response.status === 403) {
+          sessionStorage.removeItem('l3d_admin_token');
+          alert('Session expirée. Veuillez vous reconnecter.');
+        } else if (response.ok && data.success) {
           finalCourse.stripeStandardLink = data.stripeStandardLink;
           finalCourse.stripePromoLink = data.stripePromoLink;
-          alert(`✓ Formation "${editingCourse.title}" synchronisée sur Stripe !\nStandard Link: ${data.stripeStandardLink}\nPromo Link: ${data.stripePromoLink}`);
+          finalCourse.stripeInstallmentsLink = data.stripeInstallmentsLink || null;
+          finalCourse.stripeInstallmentsPromoLink = data.stripeInstallmentsPromoLink || editingCourse.stripeInstallmentsPromoLink || null;
+          
+          let alertMsg = `✓ Formation "${editingCourse.title}" synchronisée sur Stripe !\n\nLien Standard : ${data.stripeStandardLink}\nLien Promo : ${data.stripePromoLink}`;
+          if (data.stripeInstallmentsLink) {
+            alertMsg += `\nLien Plusieurs Fois : ${data.stripeInstallmentsLink}`;
+          }
+          if (finalCourse.stripeInstallmentsPromoLink) {
+            alertMsg += `\nLien Plusieurs Fois Promo : ${finalCourse.stripeInstallmentsPromoLink}`;
+          }
+          alert(alertMsg);
         } else {
           alert(`⚠️ Impossible de synchroniser sur Stripe : ${data.error || 'Erreur inconnue'}.\nLa formation est sauvegardée localement.`);
         }
@@ -1695,7 +1755,10 @@ const handleSave = async (course) => {
                                       title: editingCourse.title,
                                       slogan: editingCourse.slogan,
                                       price: Number(editingCourse.price),
-                                      originalPrice: Number(editingCourse.originalPrice)
+                                      originalPrice: Number(editingCourse.originalPrice),
+                                      installmentsEnabled: !!editingCourse.installmentsEnabled,
+                                      installmentsCount: editingCourse.installmentsCount ? Number(editingCourse.installmentsCount) : undefined,
+                                      installmentsPrice: editingCourse.installmentsPrice ? Number(editingCourse.installmentsPrice) : undefined
                                     })
                                   });
                                   const data = await response.json();
@@ -1703,9 +1766,15 @@ const handleSave = async (course) => {
                                     setEditingCourse(prev => prev ? ({
                                       ...prev,
                                       stripeStandardLink: data.stripeStandardLink,
-                                      stripePromoLink: data.stripePromoLink
+                                      stripePromoLink: data.stripePromoLink,
+                                      stripeInstallmentsLink: data.stripeInstallmentsLink || undefined
                                     }) : null);
-                                    alert(`✓ Liens Stripe générés avec succès !\n\nLien Standard : ${data.stripeStandardLink}\nLien Promo : ${data.stripePromoLink}`);
+                                    
+                                    let alertMsg = `✓ Liens Stripe générés avec succès !\n\nLien Standard : ${data.stripeStandardLink}\nLien Promo : ${data.stripePromoLink}`;
+                                    if (data.stripeInstallmentsLink) {
+                                      alertMsg += `\nLien Plusieurs Fois : ${data.stripeInstallmentsLink}`;
+                                    }
+                                    alert(alertMsg);
                                   } else {
                                     alert(`⚠️ Erreur : ${data.error || 'Impossible de synchroniser.'}`);
                                   }
@@ -1767,6 +1836,92 @@ const handleSave = async (course) => {
                         <p className="text-[10px] text-slate-500 mt-1">
                           Saisissez le "Course ID" exact défini sur School. Lors d'un achat Stripe réussi, notre webhook utilisera cet identifiant pour inscrire automatiquement l'étudiant sur School.
                         </p>
+                      </div>
+
+                      {/* Options de paiement en plusieurs fois */}
+                      <div className="p-4 bg-slate-950/40 border border-slate-800 rounded-2xl space-y-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="installmentsEnabled"
+                            checked={editingCourse.installmentsEnabled || false}
+                            onChange={(e) => {
+                              const isEnabled = e.target.checked;
+                              const newCourse = { ...editingCourse, installmentsEnabled: isEnabled };
+                              if (!isEnabled) {
+                                delete newCourse.stripeInstallmentsLink;
+                                delete newCourse.stripeInstallmentsPromoLink;
+                                delete newCourse.installmentsCount;
+                                delete newCourse.installmentsPrice;
+                                delete newCourse.installmentsPromoPrice;
+                              }
+                              setEditingCourse(newCourse);
+                            }}
+                            className="w-4 h-4 text-[#06bcbf] bg-slate-900 border-slate-800 rounded focus:ring-[#06bcbf]"
+                          />
+                          <label htmlFor="installmentsEnabled" className="text-xs font-bold text-[#06bcbf] uppercase cursor-pointer select-none">
+                            Activer la possibilité de payer en plusieurs fois (3x, 4x, etc.)
+                          </label>
+                        </div>
+
+                        {editingCourse.installmentsEnabled && (
+                          <div className="space-y-4 pt-3 border-t border-slate-900">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-bold text-slate-400 mb-1">Nombre de mensualités</label>
+                                <input
+                                  type="number"
+                                  min="2"
+                                  max="12"
+                                  placeholder="3"
+                                  value={editingCourse.installmentsCount || ''}
+                                  onChange={(e) => setEditingCourse({ ...editingCourse, installmentsCount: e.target.value ? Number(e.target.value) : undefined })}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#06bcbf]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-400 mb-1">Montant de chaque mensualité (EUR) <span className="text-[10px] text-slate-500 font-normal">(Optionnel)</span></label>
+                                <input
+                                  type="number"
+                                  placeholder="Laisser vide pour calcul automatique"
+                                  value={editingCourse.installmentsPrice || ''}
+                                  onChange={(e) => setEditingCourse({ ...editingCourse, installmentsPrice: e.target.value ? Number(e.target.value) : undefined })}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#06bcbf]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-400 mb-1">Montant mensualité PROMO (EUR) <span className="text-[10px] text-slate-500 font-normal">(Optionnel)</span></label>
+                                <input
+                                  type="number"
+                                  placeholder="Prix promo mensualité"
+                                  value={editingCourse.installmentsPromoPrice || ''}
+                                  onChange={(e) => setEditingCourse({ ...editingCourse, installmentsPromoPrice: e.target.value ? Number(e.target.value) : undefined })}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#06bcbf]"
+                                />
+                              </div>
+                            </div>
+                              <div>
+                              <label className="block text-xs font-bold text-teal-400 uppercase mb-1">Lien Stripe Paiement Plusieurs Fois</label>
+                              <input
+                                type="url"
+                                placeholder="https://buy.stripe.com/..."
+                                value={editingCourse.stripeInstallmentsLink || ''}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, stripeInstallmentsLink: e.target.value })}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#06bcbf]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-amber-400 uppercase mb-1">Lien Stripe Plusieurs Fois Promo</label>
+                              <input
+                                type="url"
+                                placeholder="https://buy.stripe.com/..."
+                                value={editingCourse.stripeInstallmentsPromoLink || ''}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, stripeInstallmentsPromoLink: e.target.value })}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#06bcbf]"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2718,11 +2873,43 @@ const handleSave = async (course) => {
                   <div className="space-y-4">
                     {(() => {
                       const calculated = getEffectiveCoursePrice(selectedCourse);
-                      const displayPrice = calculated.finalPrice;
-                      const hasDiscount = calculated.isPromoTimerActive || calculated.promoDiscount > 0;
+                      const displayPrice = paymentMode === 'installments' ? calculated.installmentsPrice : calculated.finalPrice;
+                      const hasDiscount = paymentMode === 'comptant' && (calculated.isPromoTimerActive || calculated.promoDiscount > 0);
                       
                       return (
                         <>
+                          {/* CHOIX DU MODE DE PAIEMENT */}
+                          {selectedCourse.installmentsEnabled && (
+                            <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
+                              <button
+                                type="button"
+                                onClick={() => setPaymentMode('comptant')}
+                                className={`py-2 px-3 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                                  paymentMode === 'comptant'
+                                    ? 'bg-slate-900 text-white shadow-md'
+                                    : 'text-slate-600 hover:text-slate-950'
+                                }`}
+                              >
+                                Comptant ({calculated.finalPrice} €)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPaymentMode('installments')}
+                                className={`py-2 px-3 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center ${
+                                  paymentMode === 'installments'
+                                    ? 'bg-slate-900 text-white shadow-md'
+                                    : 'text-slate-600 hover:text-slate-950'
+                                }`}
+                              >
+                                En {calculated.installmentsCount}x
+                                <span className="text-[9px] opacity-80 font-bold -mt-0.5">
+                                  {calculated.installmentsPrice} € / mois
+                                  <span className="block text-[8px] opacity-70">Total : {calculated.totalInstallmentsPrice} €</span>
+                                </span>
+                              </button>
+                            </div>
+                          )}
+
                           <div className="flex flex-col gap-1.5">
                             {hasDiscount && (
                               <div className="flex flex-wrap gap-1.5 mb-1">
@@ -2753,16 +2940,30 @@ const handleSave = async (course) => {
                                     animate={{ opacity: 1, scale: 1 }}
                                     className="text-[9px] bg-emerald-600 text-white font-black uppercase tracking-widest px-2 py-0.5 rounded-md"
                                   >
-                                    Code {appliedPromo.code} (-{appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}%` : `${appliedPromo.discountValue}€`})
+                                    Code {appliedPromo.code} (-{appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}%` : `${appliedPromo.discountValue}€`}` : `${appliedPromo.discountValue}€`})
                                   </motion.span>
                                 )}
                               </div>
                             )}
                             <div className="flex items-center gap-3">
-                              <span className="text-4xl font-black text-slate-950">{displayPrice} €</span>
-                              {hasDiscount && (
+                              <span className="text-4xl font-black text-slate-950">
+                                {displayPrice} €
+                                {paymentMode === 'installments' && (
+                                  <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider mt-1">
+                                    par mois pendant {calculated.installmentsCount} mois
+                                    {selectedCourse.installmentsPromoPrice && calculated.isPromoTimerActive && (
+                                      <span className="block text-emerald-600">Promo appliquée</span>
+                                    )}
+                                  </span>
+                                )}
+                              </span>
+                              {(hasDiscount || (paymentMode === 'installments' && selectedCourse.installmentsPromoPrice && calculated.isPromoTimerActive)) && (
                                 <>
-                                  <span className="text-2xl text-slate-400 line-through decoration-red-500 decoration-2 font-bold mt-1">{selectedCourse.originalPrice} €</span>
+                                  <span className="text-2xl text-slate-400 line-through decoration-red-500 decoration-2 font-bold mt-1">
+                                    {paymentMode === 'installments' 
+                                      ? (selectedCourse.installmentsPromoPrice && calculated.isPromoTimerActive ? `${selectedCourse.installmentsPrice} €` : '')
+                                      : `${selectedCourse.originalPrice} €`}
+                                  </span>
                                   {calculated.isPromoTimerActive && !appliedPromo && (
                                     <motion.span 
                                       animate={{ 
@@ -2777,7 +2978,9 @@ const handleSave = async (course) => {
                                       className="ml-auto text-[10px] font-black uppercase text-slate-950 bg-amber-400 px-2 py-1 rounded-full shadow-md flex items-center gap-0.5 border border-amber-300"
                                     >
                                       <Percent className="w-3 h-3" />
-                                      -{Math.round(((selectedCourse.originalPrice - selectedCourse.price) / selectedCourse.originalPrice) * 100)}% de remise
+                                      -{paymentMode === 'installments' 
+                                        ? Math.round(((selectedCourse.installmentsPrice - selectedCourse.installmentsPromoPrice) / selectedCourse.installmentsPrice) * 100)
+                                        : Math.round(((selectedCourse.originalPrice - selectedCourse.price) / selectedCourse.originalPrice) * 100)}% de remise
                                     </motion.span>
                                   )}
                                 </>
@@ -2836,26 +3039,31 @@ const handleSave = async (course) => {
                             Accès immédiat et à vie • Garantie satisfait ou remboursé sous 30 jours
                           </p>
 
-                          <a 
-                            href={calculated.stripeLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => {
-                              trackEvent('buy_course_click', 'formations', selectedCourse?.title);
-                              if (calculated.stripeLink.includes('mock-')) {
-                                e.preventDefault();
-                                setMockLinkModal({
-                                  isOpen: true,
-                                  courseTitle: selectedCourse?.title || 'Formation',
-                                  stripeLink: calculated.stripeLink
-                                });
-                              }
-                            }}
-                            className="w-full py-4 px-6 bg-[#06bcbf] hover:bg-[#05a5a7] text-slate-950 text-center font-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer text-decoration-none text-sm uppercase tracking-wider"
-                          >
-                            <Lock className="w-4.5 h-4.5" />
-                            S'inscrire à la formation
-                          </a>
+                          {(() => {
+                            const targetLink = paymentMode === 'installments' ? calculated.stripeInstallmentsLink : calculated.stripeLink;
+                            return (
+                              <a 
+                                href={targetLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  trackEvent('buy_course_click', 'formations', selectedCourse?.title);
+                                  if (targetLink.includes('mock-')) {
+                                    e.preventDefault();
+                                    setMockLinkModal({
+                                      isOpen: true,
+                                      courseTitle: selectedCourse?.title || 'Formation',
+                                      stripeLink: targetLink
+                                    });
+                                  }
+                                }}
+                                className="w-full py-4 px-6 bg-[#06bcbf] hover:bg-[#05a5a7] text-slate-950 text-center font-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer text-decoration-none text-sm uppercase tracking-wider animate-pulse hover:animate-none"
+                              >
+                                <Lock className="w-4.5 h-4.5" />
+                                {paymentMode === 'installments' ? `S'inscrire en ${calculated.installmentsCount}x` : "S'inscrire à la formation"}
+                              </a>
+                            );
+                          })()}
 
                           {appliedPromo && appliedPromo.stripeSynced && (
                             <p className="text-[10px] text-center text-emerald-600 font-bold -mt-2">
@@ -3446,7 +3654,10 @@ const handleSave = async (course) => {
                               title: courseToSync.title,
                               slogan: courseToSync.slogan,
                               price: Number(courseToSync.price),
-                              originalPrice: Number(courseToSync.originalPrice)
+                              originalPrice: Number(courseToSync.originalPrice),
+                              installmentsEnabled: !!courseToSync.installmentsEnabled,
+                              installmentsCount: courseToSync.installmentsCount ? Number(courseToSync.installmentsCount) : undefined,
+                              installmentsPrice: courseToSync.installmentsPrice ? Number(courseToSync.installmentsPrice) : undefined
                             })
                           });
                           const data = await response.json();
@@ -3454,7 +3665,8 @@ const handleSave = async (course) => {
                             const updated = courses.map(c => c.id === courseToSync.id ? {
                               ...c,
                               stripeStandardLink: data.stripeStandardLink,
-                              stripePromoLink: data.stripePromoLink
+                              stripePromoLink: data.stripePromoLink,
+                              stripeInstallmentsLink: data.stripeInstallmentsLink || undefined
                             } : c);
                             saveCoursesToStorage(updated);
                             
