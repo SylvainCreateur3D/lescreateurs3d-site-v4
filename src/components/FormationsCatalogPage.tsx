@@ -286,16 +286,14 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isUploadingMedia, setIsUploadingMedia] = useState<boolean>(false);
 
-  // Masquer les widgets Elfsight (Chatbot & WhatsApp) sur cette page
+  // Masquer le widget Elfsight Chatbot sur cette page
   useEffect(() => {
     const styleEl = document.createElement('style');
     styleEl.id = 'hide-elfsight-style';
     styleEl.innerHTML = `
       .elfsight-app-8e7e055c-5f4b-48e0-a9c8-55099bb7e86a,
-      .elfsight-app-2e8f3d4d-69f2-454a-a57d-c238e29a85c2,
-      iframe[src*="elfsight"],
-      [class*="elfsight-app-"],
-      [id*="elfsight"] {
+      [class*="8e7e055c-5f4b-48e0-a9c8-55099bb7e86a"],
+      [id*="8e7e055c-5f4b-48e0-a9c8-55099bb7e86a"] {
         display: none !important;
       }
     `;

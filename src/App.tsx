@@ -72,13 +72,9 @@ export default function App() {
     let styleEl: HTMLStyleElement | null = null;
 
     const selectors = [
-      '[class*="elfsight-app"]',
-      '[class*="eapps-"]',
-      'iframe[src*="elfsight"]',
-      'div[id*="elfsight"]',
-      'div[class*="elfsight"]',
-      'div[class*="eapps-"]',
-      '[id*="eapps-"]'
+      '.elfsight-app-8e7e055c-5f4b-48e0-a9c8-55099bb7e86a',
+      '[class*="8e7e055c-5f4b-48e0-a9c8-55099bb7e86a"]',
+      '[id*="8e7e055c-5f4b-48e0-a9c8-55099bb7e86a"]'
     ];
 
     const applyHiding = () => {
@@ -120,18 +116,13 @@ export default function App() {
     };
 
     if (currentPage === 'formations') {
-      // 1. Inject aggressive CSS to head
+      // 1. Inject aggressive CSS to head (only targeting chatbot)
       styleEl = document.createElement('style');
       styleEl.id = 'app-hide-elfsight-style';
       styleEl.innerHTML = `
-        div[class*="elfsight-app-"],
-        div[class*="elfsight-app"],
-        iframe[src*="elfsight"],
-        [class*="elfsight"],
-        [id*="elfsight"],
-        [class*="eapps-"],
-        [id*="eapps-"],
-        div[data-elfsight-app-lazy] {
+        .elfsight-app-8e7e055c-5f4b-48e0-a9c8-55099bb7e86a,
+        [class*="8e7e055c-5f4b-48e0-a9c8-55099bb7e86a"],
+        [id*="8e7e055c-5f4b-48e0-a9c8-55099bb7e86a"] {
           display: none !important;
           opacity: 0 !important;
           visibility: hidden !important;

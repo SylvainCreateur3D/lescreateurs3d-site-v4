@@ -128,14 +128,24 @@ let adminDb: any = null;
 function getAdminFirestoreDb() {
   if (adminDb) return adminDb;
   try {
-    if (getApps().length === 0) {
-      initializeAdminApp();
+    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+    if (fs.existsSync(configPath)) {
+      const configData = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      if (getApps().length === 0) {
+        initializeAdminApp({
+          projectId: configData.projectId
+        });
+      }
+      const app = getApps()[0];
+      // getAdminFirestore can take (app, databaseId) to specify the named database
+      adminDb = getAdminFirestore(app, configData.firestoreDatabaseId);
+      console.log(`[Server Admin] Successfully initialized firebase-admin firestore for project: ${configData.projectId}, database: ${configData.firestoreDatabaseId}`);
+      return adminDb;
+    } else {
+      console.warn("[Server Admin] firebase-applet-config.json not found.");
     }
-    adminDb = getAdminFirestore();
-    console.log("[Server Admin] Successfully initialized firebase-admin firestore.");
-    return adminDb;
   } catch (err: any) {
-    console.warn("[Server Admin] Could not initialize firebase-admin (likely running locally without ADC):", err.message);
+    console.warn("[Server Admin] Could not initialize firebase-admin:", err.message);
   }
   return null;
 }
