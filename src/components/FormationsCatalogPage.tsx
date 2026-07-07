@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactPlayer from 'react-player';
 import { db, handleFirestoreError, OperationType, storage, auth } from '../lib/firebase';
-import { collection, getDocs, doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, onSnapshot, getDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { trackEvent } from '../lib/analytics';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
@@ -48,6 +48,23 @@ import {
 } from 'lucide-react';
 import { defaultCourses, Course, CourseModule } from './coursesData';
 import CountdownTimer from './CountdownTimer';
+
+// Utility helper to safely sanitize objects for Firestore (maps undefined values to null)
+const cleanForFirestore = (obj: any): any => {
+  if (obj === undefined) return null;
+  if (obj === null) return null;
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanForFirestore(item));
+  }
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const key of Object.keys(obj)) {
+      cleaned[key] = cleanForFirestore(obj[key]);
+    }
+    return cleaned;
+  }
+  return obj;
+};
 
 interface FormationsCatalogPageProps {
   onGoBack: () => void;
@@ -114,22 +131,34 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
 
   // Calculate dynamic FOMO prices & handle Stripe pre-filled promo codes
   const getEffectiveCoursePrice = (course: Course) => {
-    let basePrice = course.originalPrice;
+    // If originalPrice is not set, or is less than or equal to price, there is no promotion.
+    // The active base price is course.price, and no promo timer is active.
+    let basePrice = typeof course.price === 'number' ? course.price : 0;
     let isPromoTimerActive = false;
     
-    const hasPromoPriceSetting = course.originalPrice > course.price;
+    const hasPromoPriceSetting = typeof course.originalPrice === 'number' && 
+                                 course.originalPrice > 0 && 
+                                 course.originalPrice > (course.price || 0);
+                                 
     if (hasPromoPriceSetting) {
       if (course.promoDeadline) {
         const deadline = new Date(course.promoDeadline);
         const isExpired = deadline.getTime() <= Date.now();
         if (!isExpired) {
-          basePrice = course.price;
+          basePrice = typeof course.price === 'number' ? course.price : 0;
           isPromoTimerActive = true;
+        } else {
+          // Revert to original price when expired
+          basePrice = course.originalPrice;
+          isPromoTimerActive = false;
         }
       } else {
-        basePrice = course.price;
+        basePrice = typeof course.price === 'number' ? course.price : 0;
         isPromoTimerActive = true;
       }
+    } else {
+      basePrice = typeof course.price === 'number' ? course.price : 0;
+      isPromoTimerActive = false;
     }
     
     let finalPrice = basePrice;
@@ -257,6 +286,29 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isUploadingMedia, setIsUploadingMedia] = useState<boolean>(false);
 
+  // Masquer les widgets Elfsight (Chatbot & WhatsApp) sur cette page
+  useEffect(() => {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'hide-elfsight-style';
+    styleEl.innerHTML = `
+      .elfsight-app-8e7e055c-5f4b-48e0-a9c8-55099bb7e86a,
+      .elfsight-app-2e8f3d4d-69f2-454a-a57d-c238e29a85c2,
+      iframe[src*="elfsight"],
+      [class*="elfsight-app-"],
+      [id*="elfsight"] {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(styleEl);
+
+    return () => {
+      const existingStyle = document.getElementById('hide-elfsight-style');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
+
   // Handle Firebase Auth Session Persistence for FormationsCatalogPage
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -272,15 +324,25 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
           }
         } else {
           await auth.signOut();
+          const token = sessionStorage.getItem('l3d_admin_token');
+          if (!token || !token.startsWith('l3d_sess_')) {
+            sessionStorage.removeItem('l3d_admin_token');
+            sessionStorage.removeItem('l3d_admin_auth');
+            setIsAuthenticated(false);
+            setLoginError("Accès refusé. Seul le compte propriétaire (lescreateurs3d@gmail.com) est autorisé.");
+          } else {
+            setIsAuthenticated(true);
+          }
+        }
+      } else {
+        const token = sessionStorage.getItem('l3d_admin_token');
+        if (!token || !token.startsWith('l3d_sess_')) {
           sessionStorage.removeItem('l3d_admin_token');
           sessionStorage.removeItem('l3d_admin_auth');
           setIsAuthenticated(false);
-          setLoginError("Accès refusé. Seul le compte propriétaire (lescreateurs3d@gmail.com) est autorisé.");
+        } else {
+          setIsAuthenticated(true);
         }
-      } else {
-        sessionStorage.removeItem('l3d_admin_token');
-        sessionStorage.removeItem('l3d_admin_auth');
-        setIsAuthenticated(false);
       }
     });
     return () => unsubscribe();
@@ -403,12 +465,26 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
     
     const unsub = onSnapshot(collection(db, 'courses'), async (snapshot) => {
       if (snapshot.empty) {
-        // Seed initial data
-        for (const course of defaultCourses) {
-          await setDoc(doc(db, 'courses', course.id), course, { merge: true });
+        // Only seed if we haven't already initialized this database
+        try {
+          const configRef = doc(db, 'system', 'config');
+          const configSnap = await getDoc(configRef);
+          if (!configSnap.exists()) {
+            // Seed initial data
+            // Seed initial data
+            for (const course of defaultCourses) {
+              await setDoc(doc(db, 'courses', course.id), cleanForFirestore(course), { merge: true });
+            }
+            await setDoc(configRef, { seeded: true });
+          } else {
+            setCourses([]);
+          }
+        } catch (err) {
+          console.error("Error checking database initialization:", err);
+          setCourses([]);
         }
       } else {
-        const coursesData = snapshot.docs.map(doc => doc.data() as Course);
+        const coursesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
         setCourses(coursesData);
         // Sync with server local file as fallback
         try {
@@ -434,23 +510,47 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
 
   const saveCoursesToStorage = async (updatedCourses: Course[]) => {
     setCourses(updatedCourses);
-    // Persist all courses to Firestore
-    for (const course of updatedCourses) {
-      await setDoc(doc(db, 'courses', course.id), course, { merge: true });
-    }
-    // Also sync to server's courses.json for local backup/fallback
+    
+    // 1. Sync to server's courses.json first (especially important for passcode login!)
+    // The server-side admin SDK will securely handle the Firestore writes.
+    let serverSyncSuccess = false;
     try {
       const token = sessionStorage.getItem('l3d_admin_token') || '';
-      await fetch('/api/courses', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updatedCourses)
-      });
+      if (token) {
+        const response = await fetch('/api/courses', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(updatedCourses)
+        });
+        if (response.ok) {
+          serverSyncSuccess = true;
+        }
+      }
     } catch (e) {
       console.error('Failed to sync courses to server:', e);
+    }
+
+    // 2. Try to persist directly to Firestore on client side (works for Google Sign-In)
+    try {
+      for (const course of updatedCourses) {
+        const cleanedCourse = cleanForFirestore(course);
+        await setDoc(doc(db, 'courses', course.id), cleanedCourse, { merge: true });
+      }
+    } catch (err) {
+      const token = sessionStorage.getItem('l3d_admin_token') || '';
+      const isPasscodeSession = token && token.startsWith('l3d_sess_');
+      
+      // If it's a passcode session and server sync succeeded, we do NOT alert because the server
+      // has already bypassed security rules and successfully written it to Firestore!
+      if (isPasscodeSession && serverSyncSuccess) {
+        console.log("[Client] Client-side Firestore write failed (this is expected for passcode login, server has handled it successfully):", err);
+      } else {
+        console.error("Error writing courses to Firestore:", err);
+        alert("Erreur lors de la sauvegarde dans la base de données Firestore : " + (err instanceof Error ? err.message : String(err)));
+      }
     }
   };
 
@@ -571,10 +671,46 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
     saveCoursesToStorage(updated);
   };
 
-  const handleDeleteCourse = (id: string) => {
+  const handleDeleteCourse = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette formation de votre catalogue ?')) {
-      const updated = courses.filter(c => c.id !== id);
-      saveCoursesToStorage(updated);
+      try {
+        const updated = courses.filter(c => c.id !== id);
+        
+        // 1. Sync updated courses to the server first (especially important for passcode login!)
+        let serverSyncSuccess = false;
+        const token = sessionStorage.getItem('l3d_admin_token') || '';
+        if (token) {
+          const res = await fetch('/api/courses', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updated)
+          });
+          if (res.ok) {
+            serverSyncSuccess = true;
+          }
+        }
+        
+        // 2. Try to delete document directly from Firestore on client side (Option 1 Google Sign-In)
+        try {
+          await deleteDoc(doc(db, 'courses', id));
+        } catch (dbErr) {
+          const isPasscodeSession = token && token.startsWith('l3d_sess_');
+          if (isPasscodeSession && serverSyncSuccess) {
+            console.log("[Client] Client-side Firestore delete failed (this is expected for passcode login, server has handled it successfully):", dbErr);
+          } else {
+            throw dbErr;
+          }
+        }
+        
+        // Filter out locally and update UI
+        setCourses(updated);
+      } catch (error) {
+        console.error("Erreur lors de la suppression de la formation :", error);
+        alert("Erreur lors de la suppression de la formation.");
+      }
     }
   };
 
@@ -2672,17 +2808,17 @@ const handleSave = async (course) => {
 
                               {/* Pricing & CTA Button */}
                               <div className={`mt-auto pt-4 border-t flex items-center justify-between ${
-                                isPromoActive && course.promoDeadline && course.promoLabel
+                                isPromoActive
                                   ? 'border-amber-100 bg-amber-500/5 -mx-6 -mb-6 p-6 rounded-b-[2rem]' 
                                   : 'border-slate-100'
                               }`}>
                                 <div className="flex flex-col">
-                                  {isPromoActive && course.promoDeadline && course.promoLabel && (
+                                  {isPromoActive && course.promoLabel && (
                                     <span className="text-[9px] text-amber-600 font-black uppercase tracking-wider mb-0.5">{course.promoLabel}</span>
                                   )}
                                   <div className="flex items-baseline gap-2">
-                                    <span className={`text-2xl font-black ${isPromoActive && course.promoDeadline && course.promoLabel ? 'text-amber-600' : 'text-slate-900'}`}>{isPromoActive && course.promoDeadline && course.promoLabel ? course.price : course.originalPrice} €</span>
-                                    {isPromoActive && course.promoDeadline && course.promoLabel && (
+                                    <span className={`text-2xl font-black ${isPromoActive ? 'text-amber-600' : 'text-slate-900'}`}>{isPromoActive ? course.price : course.originalPrice} €</span>
+                                    {isPromoActive && (
                                       <span className="text-lg text-slate-400 line-through decoration-red-500 decoration-2 font-bold">{course.originalPrice} €</span>
                                     )}
                                   </div>

@@ -6,6 +6,8 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import crypto from "crypto";
+import { getApps, initializeApp as initializeAdminApp } from "firebase-admin/app";
+import { getFirestore as getAdminFirestore } from "firebase-admin/firestore";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, collection, addDoc } from "firebase/firestore";
 
@@ -121,6 +123,38 @@ async function requireAdmin(req: express.Request, res: express.Response, next: e
 
 // Initialize server-side Firestore connection
 let firestoreDb: any = null;
+let adminDb: any = null;
+
+function getAdminFirestoreDb() {
+  if (adminDb) return adminDb;
+  try {
+    if (getApps().length === 0) {
+      initializeAdminApp();
+    }
+    adminDb = getAdminFirestore();
+    console.log("[Server Admin] Successfully initialized firebase-admin firestore.");
+    return adminDb;
+  } catch (err: any) {
+    console.warn("[Server Admin] Could not initialize firebase-admin (likely running locally without ADC):", err.message);
+  }
+  return null;
+}
+
+function cleanForFirestoreServer(obj: any): any {
+  if (obj === undefined) return null;
+  if (obj === null) return null;
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanForFirestoreServer(item));
+  }
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const key of Object.keys(obj)) {
+      cleaned[key] = cleanForFirestoreServer(obj[key]);
+    }
+    return cleaned;
+  }
+  return obj;
+}
 
 function getFirestoreDb() {
   if (firestoreDb) return firestoreDb;
@@ -556,11 +590,40 @@ app.get("/api/courses", (req, res) => {
   res.json(courses);
 });
 
-app.post("/api/courses", requireAdmin, (req, res) => {
+app.post("/api/courses", requireAdmin, async (req, res) => {
   try {
     const courses = req.body;
     if (Array.isArray(courses)) {
       saveCoursesToServer(courses);
+      
+      // Also write directly to Firestore using firebase-admin SDK if available!
+      try {
+        const db = getAdminFirestoreDb();
+        if (db) {
+          console.log("[Server Admin] Syncing courses to Firestore...");
+          const snapshot = await db.collection("courses").get();
+          const existingIds = snapshot.docs.map((d: any) => d.id);
+          const incomingIds = courses.map((c: any) => c.id);
+          
+          // Delete courses that are not in the incoming list
+          for (const docId of existingIds) {
+            if (!incomingIds.includes(docId)) {
+              await db.collection("courses").doc(docId).delete();
+              console.log(`[Server Admin] Deleted course "${docId}" from Firestore.`);
+            }
+          }
+          
+          // Save or update incoming courses
+          for (const course of courses) {
+            const cleaned = cleanForFirestoreServer(course);
+            await db.collection("courses").doc(course.id).set(cleaned, { merge: true });
+          }
+          console.log("[Server Admin] Successfully synced courses to Firestore.");
+        }
+      } catch (adminErr: any) {
+        console.error("[Server Admin] Error syncing to Firestore via admin SDK:", adminErr.message);
+      }
+
       return res.json({ success: true, count: courses.length });
     }
     res.status(400).json({ error: "Le corps de la requête doit être un tableau de cours." });

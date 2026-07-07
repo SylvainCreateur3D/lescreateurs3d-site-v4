@@ -65,6 +65,117 @@ export default function App() {
     }
   }, [currentPage]);
 
+  // Dynamic Elfsight visibility control
+  useEffect(() => {
+    let intervalId: any;
+    let observer: MutationObserver | null = null;
+    let styleEl: HTMLStyleElement | null = null;
+
+    const selectors = [
+      '[class*="elfsight-app"]',
+      '[class*="eapps-"]',
+      'iframe[src*="elfsight"]',
+      'div[id*="elfsight"]',
+      'div[class*="elfsight"]',
+      'div[class*="eapps-"]',
+      '[id*="eapps-"]'
+    ];
+
+    const applyHiding = () => {
+      selectors.forEach(selector => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          elements.forEach(el => {
+            const htmlEl = el as HTMLElement;
+            if (htmlEl && htmlEl.style.display !== 'none') {
+              htmlEl.style.setProperty('display', 'none', 'important');
+              htmlEl.style.setProperty('opacity', '0', 'important');
+              htmlEl.style.setProperty('visibility', 'hidden', 'important');
+              htmlEl.style.setProperty('pointer-events', 'none', 'important');
+            }
+          });
+        } catch (e) {
+          // ignore
+        }
+      });
+    };
+
+    const restoreVisibility = () => {
+      selectors.forEach(selector => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          elements.forEach(el => {
+            const htmlEl = el as HTMLElement;
+            if (htmlEl) {
+              htmlEl.style.removeProperty('display');
+              htmlEl.style.removeProperty('opacity');
+              htmlEl.style.removeProperty('visibility');
+              htmlEl.style.removeProperty('pointer-events');
+            }
+          });
+        } catch (e) {
+          // ignore
+        }
+      });
+    };
+
+    if (currentPage === 'formations') {
+      // 1. Inject aggressive CSS to head
+      styleEl = document.createElement('style');
+      styleEl.id = 'app-hide-elfsight-style';
+      styleEl.innerHTML = `
+        div[class*="elfsight-app-"],
+        div[class*="elfsight-app"],
+        iframe[src*="elfsight"],
+        [class*="elfsight"],
+        [id*="elfsight"],
+        [class*="eapps-"],
+        [id*="eapps-"],
+        div[data-elfsight-app-lazy] {
+          display: none !important;
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+          width: 0 !important;
+          height: 0 !important;
+          max-width: 0 !important;
+          max-height: 0 !important;
+          transform: scale(0) !important;
+        }
+      `;
+      document.head.appendChild(styleEl);
+
+      // 2. Continuous enforcement via interval (catches dynamic additions)
+      intervalId = setInterval(applyHiding, 200);
+
+      // 3. High-performance observer for DOM changes
+      observer = new MutationObserver(() => {
+        applyHiding();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      // Apply immediately
+      applyHiding();
+    } else {
+      // Restore standard visibility when not on formations page
+      restoreVisibility();
+      const existingStyle = document.getElementById('app-hide-elfsight-style');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (observer) observer.disconnect();
+      const existingStyle = document.getElementById('app-hide-elfsight-style');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      restoreVisibility();
+    };
+  }, [currentPage]);
+
   useEffect(() => {
     const handleHashChange = () => {
       if (window.location.hash === '#logiciels') {
