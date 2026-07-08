@@ -1096,6 +1096,23 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
                 // AUTHENTICATED ADMIN DASHBOARD
                 <div className="space-y-8">
                   
+                  {sessionStorage.getItem('l3d_admin_token')?.startsWith('l3d_sess_') && (
+                    <div className="p-5 bg-amber-950/40 border border-amber-900/50 rounded-2xl flex items-start gap-3.5 text-xs text-amber-400 leading-relaxed shadow-xl">
+                      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500 animate-pulse" />
+                      <div>
+                        <h4 className="font-bold text-sm text-amber-300 mb-1">⚠️ Session Temporaire (Sauvegarde Restreinte)</h4>
+                        <p className="mb-2">
+                          Vous êtes actuellement connecté avec le <strong>mot de passe de secours</strong>. En raison des restrictions de sécurité de Google Cloud / Firebase (accès inter-projets), 
+                          le serveur ne peut pas écrire directement dans votre base de données permanente Firestore avec cette méthode. 
+                          Vos modifications de prix et de cours sont stockées temporairement en mémoire et seront <strong>définitivement perdues au prochain redémarrage automatique du serveur</strong>.
+                        </p>
+                        <p className="font-semibold text-amber-200">
+                          👉 Pour enregistrer vos prix et vos cours de manière permanente et sécurisée dans la base de données, veuillez vous déconnecter puis utiliser l'<strong>Option 1 : Se connecter avec Google</strong> avec l'adresse <strong>lescreateurs3d@gmail.com</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* METRICS ROW */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl flex items-center gap-4">
