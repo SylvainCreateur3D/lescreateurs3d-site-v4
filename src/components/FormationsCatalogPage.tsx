@@ -44,10 +44,15 @@ import {
   LogOut,
   AlertCircle,
   Volume2,
-  Copy
+  Copy,
+  Activity,
+  Sliders,
+  Palette,
+  Wand2
 } from 'lucide-react';
 import { defaultCourses, Course, CourseModule } from './coursesData';
 import CountdownTimer from './CountdownTimer';
+import CourseCreationForm from './CourseCreationForm';
 
 // Utility helper to safely sanitize objects for Firestore (maps undefined values to null)
 const cleanForFirestore = (obj: any): any => {
@@ -441,6 +446,301 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
   // Course form states for adding/editing
   const [editingCourse, setEditingCourse] = useState<Partial<Course> | null>(null);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
+  const [activeFormTab, setActiveFormTab] = useState<'style' | 'content' | 'pricing'>('style');
+
+  const applyCourseTemplate = (templateType: 'sketchup' | 'vray' | 'ia' | 'atelier') => {
+    if (!editingCourse) return;
+    
+    let patch: Partial<Course> = {};
+    
+    if (templateType === 'sketchup') {
+      patch = {
+        title: "SketchUp Masterclass Pro",
+        slogan: "Modélisez 3x plus vite avec une rigueur chirurgicale",
+        category: "Modélisation",
+        duration: "12h de formation",
+        lessonsCount: 42,
+        modulesCount: 3,
+        level: "Tous niveaux",
+        gradient: "from-amber-500 to-orange-600",
+        accentColor: "#f59e0b",
+        description: "Une méthode de modélisation pas-à-pas conçue pour les professionnels de l'architecture d'intérieur. Évitez les fichiers lourds, divisez votre temps de modélisation par 3, et travaillez proprement.",
+        outcomes: [
+          "Maîtriser une méthode de modélisation ultra-rapide et structurée",
+          "Utiliser intelligemment les balises, groupes et composants",
+          "Importer, nettoyer et exploiter des plans 2D (CAD/PDF)",
+          "Optimiser vos modèles pour éliminer les ralentissements",
+          "Concevoir des coupes, plans de détails et documents d'exécution"
+        ],
+        audience: [
+          "Architectes d'intérieur et Décorateurs",
+          "Professionnels de l'agencement et du mobilier",
+          "Autodidactes souhaitant acquérir une méthode rigoureuse"
+        ],
+        includes: [
+          "Accès à vie 24h/24 aux 42 leçons vidéo",
+          "Fichiers d'exercice SketchUp de démarrage et corrigés",
+          "Ressources de composants de mobilier exclusifs",
+          "Support formateur et accès au forum d'entraide"
+        ],
+        modules: [
+          {
+            title: "Module 1 : Interface, Raccourcis et Optimisation de l'Espace",
+            duration: "1h30 • 6 leçons",
+            lessons: [
+              "Introduction et objectifs de la formation",
+              "Configuration d'une interface métier rapide et épurée",
+              "Les raccourcis indispensables pour travailler sans lever la main",
+              "Comprendre l'environnement 3D et les pièges d'affichage"
+            ]
+          },
+          {
+            title: "Module 2 : La Logique d'Organisation (Groupes, Composants, Balises)",
+            duration: "2h45 • 8 leçons",
+            lessons: [
+              "Pourquoi votre SketchUp rame ? Le diagnostic",
+              "La règle d'or : Géométrie brute vs Conteneurs",
+              "Groupes vs Composants : Maîtriser le clonage intelligent",
+              "Structurer son modèle avec le système de Balises (Tags)",
+              "Nettoyage chirurgical des modèles importés de la 3D Warehouse"
+            ]
+          },
+          {
+            title: "Module 3 : Modélisation d'une Scène d'Intérieur pas-à-pas",
+            duration: "4h15 • 12 leçons",
+            lessons: [
+              "Importation et mise à l'échelle d'un plan 2D",
+              "Élévation des murs extérieurs et cloisons",
+              "Création des ouvertures (portes, fenêtres dynamiques)",
+              "Modélisation de menuiseries sur-mesure (Cuisine & Dressing)",
+              "Gestion des matières et textures sans étirer les motifs"
+            ]
+          }
+        ],
+        faq: [
+          {
+            q: "La formation est-elle adaptée si je n'ai jamais ouvert le logiciel ?",
+            r: "Oui ! Le premier module reprend les bases indispensables et installe d'emblée de bonnes habitudes de structure pour vous éviter des années de frustration."
+          },
+          {
+            q: "Quelle version de SketchUp est requise ?",
+            r: "Toutes les versions récentes (Pro ou Studio) conviennent. Les concepts d'organisation s'appliquent sur toutes les déclinaisons du logiciel."
+          }
+        ],
+        testimonials: [
+          {
+            name: "Mélanie D.",
+            role: "Architecte d'intérieur",
+            comment: "Un avant et un après ! Mes fichiers ne plantent plus et j'ai divisé par deux mon temps de travail sur mes projets 3D.",
+            rating: 5
+          }
+        ]
+      };
+    } else if (templateType === 'vray') {
+      patch = {
+        title: "V-Ray Mastery",
+        slogan: "Créez des rendus réalistes de prestige et déclenchez le coup de cœur",
+        category: "Rendu 3D",
+        duration: "15h de formation",
+        lessonsCount: 50,
+        modulesCount: 2,
+        level: "Intermédiaire",
+        gradient: "from-indigo-600 to-violet-800",
+        accentColor: "#8b5cf6",
+        description: "Apprenez à sculpter la lumière et paramétrer des matériaux vibrants pour transformer vos scènes 3D en véritables photographies de magazine.",
+        outcomes: [
+          "Sculpter la lumière naturelle et artificielle de manière réaliste",
+          "Créer des matériaux réalistes complexes (bois, marbre, tissus)",
+          "Maîtriser les caméras physiques pour des cadrages professionnels",
+          "Optimiser vos temps de calcul de rendus pour livrer à temps",
+          "Utiliser le tampon de rendu de V-Ray pour la post-production express"
+        ],
+        audience: [
+          "Professionnels de l'architecture d'intérieur possédant de bonnes bases en 3D",
+          "Visualisateurs 3D et infographistes indépendants",
+          "Étudiants en design d'espace souhaitant un portfolio d'exception"
+        ],
+        includes: [
+          "Accès à vie aux 50 leçons vidéo haute définition",
+          "Scène SketchUp complète pré-configurée prête à l'emploi",
+          "Pack de 20 textures PBR haute résolution professionnelles",
+          "Support personnalisé sous chaque leçon vidéo"
+        ],
+        modules: [
+          {
+            title: "Module 1 : Théorie de la Lumière & Studio Photo",
+            duration: "2h • 5 leçons",
+            lessons: [
+              "Les règles d'or de la lumière en photographie d'intérieur",
+              "Lumière Naturelle : Dômes de lumière (HDRI) et Sun Light",
+              "Lumière Artificielle : Spots, rubans LED et IES Profiles",
+              "Équilibre et hiérarchie lumineuse de la scène"
+            ]
+          },
+          {
+            title: "Module 2 : Matériaux Réalistes complexes (PBR)",
+            duration: "4h • 10 leçons",
+            lessons: [
+              "Comprendre l'éditeur de matériaux de V-Ray",
+              "La réflexion et la rugosité (glossiness)",
+              "Donner du relief : Maîtriser le Bump et le Displacement",
+              "Créer un verre parfait et des métaux précieux",
+              "Configurer des tissus doux et du parquet réaliste"
+            ]
+          }
+        ],
+        faq: [
+          {
+            q: "Faut-il un ordinateur ultra-puissant pour suivre ce cours ?",
+            r: "Un ordinateur de moyenne gamme récente suffit. Nous vous apprenons justement à optimiser vos scènes pour réduire le temps de calcul au strict minimum."
+          },
+          {
+            q: "V-Ray pour SketchUp est-il différent de V-Ray pour 3ds Max ?",
+            r: "Le moteur et l'interface sont presque identiques. Ce cours est enregistré sur SketchUp mais la logique s'applique partout."
+          }
+        ],
+        testimonials: [
+          {
+            name: "Thomas L.",
+            role: "Designer 3D",
+            comment: "Grâce à cette formation, j'ai pu augmenter mes tarifs de prestation de rendu auprès des promoteurs immobiliers !",
+            rating: 5
+          }
+        ]
+      };
+    } else if (templateType === 'ia') {
+      patch = {
+        title: "IA pour les Créatifs 3D",
+        slogan: "Intégrez Midjourney, Stable Diffusion et ChatGPT dans votre workflow de design",
+        category: "Intelligence Artificielle",
+        duration: "8h de formation",
+        lessonsCount: 30,
+        modulesCount: 2,
+        level: "Tous niveaux",
+        gradient: "from-teal-600 via-cyan-600 to-blue-700",
+        accentColor: "#06bcbf",
+        description: "Découvrez comment utiliser l'intelligence artificielle pour générer des planches d'ambiance ultra-réalistes, retoucher vos rendus en 10 secondes et décupler votre créativité commerciale.",
+        outcomes: [
+          "Rédiger des prompts professionnels pour le design d'intérieur",
+          "Générer des concepts de pièces photoréalistes sous tous les angles",
+          "Retoucher et transformer des éléments précis d'un rendu 3D existant",
+          "Rédiger des descriptions de projets et argumentaires clients percutants",
+          "Créer des moodboards clients inspirants en moins de 5 minutes"
+        ],
+        audience: [
+          "Créateurs d'espace, décorateurs et designers",
+          "Artistes 3D cherchant à accélérer leur phase de conception",
+          "Professionnels du marketing immobilier et de la communication"
+        ],
+        includes: [
+          "Accès à vie aux modules vidéo constamment mis à jour",
+          "Guide PDF exclusif de 150 prompts d'architecture d'intérieur",
+          "Accès à un serveur Discord d'entraide dédié à l'IA",
+          "Mises à jour gratuites régulières sur les nouveaux outils"
+        ],
+        modules: [
+          {
+            title: "Module 1 : ChatGPT pour le Design Conceptuel",
+            duration: "1h30 • 5 leçons",
+            lessons: [
+              "Comment faire rédiger un cahier des charges client ultra-précis",
+              "Générer des concepts d'aménagement narratifs originaux",
+              "Créer des prompts complexes pour Midjourney",
+              "Automatiser sa communication de marque et ses posts Instagram"
+            ]
+          },
+          {
+            title: "Module 2 : Midjourney Masterclass pour les Concept Boards",
+            duration: "3h • 8 leçons",
+            lessons: [
+              "Prise en main de Discord et bases de la génération d'images",
+              "Le vocabulaire clé de l'architecture d'intérieur en prompting",
+              "Contrôler le style, la lumière et l'objectif photo",
+              "Conserver une cohérence visuelle sur plusieurs générations",
+              "Uscale et agrandissement HD pour l'impression client"
+            ]
+          }
+        ],
+        faq: [
+          {
+            q: "Est-ce que l'IA va remplacer les logiciels de 3D classiques ?",
+            r: "Non, l'IA est un complément extraordinaire pour les phases d'idéation rapides et la retouche de rendus, mais le contrôle structurel précis reste aux logiciels de CAO."
+          }
+        ],
+        testimonials: [
+          {
+            name: "Sarah P.",
+            role: "Décoratrice d'intérieur",
+            comment: "Mes clients valident mes projets beaucoup plus vite depuis que je leur montre des esquisses d'ambiance générées avec Midjourney.",
+            rating: 5
+          }
+        ]
+      };
+    } else if (templateType === 'atelier') {
+      patch = {
+        title: "Atelier Créatif Flash",
+        slogan: "Un projet concret de A à Z résolu en moins de 3 heures",
+        category: "Workflow",
+        duration: "3h de formation",
+        lessonsCount: 12,
+        modulesCount: 1,
+        level: "Tous niveaux",
+        gradient: "from-rose-500 to-red-600",
+        accentColor: "#f43f5e",
+        description: "Un format court, percutant et 100% pratique pour débloquer un point précis de votre activité ou concevoir un aménagement d'espace complet en direct.",
+        outcomes: [
+          "Aller droit au but sans blabla théorique",
+          "Résoudre une problématique métier concrète",
+          "Repartir avec un modèle prêt à être présenté à un client"
+        ],
+        audience: [
+          "Créatifs pressés cherchant un boost de compétences immédiat",
+          "Étudiants ayant besoin d'un cas pratique concret",
+          "Professionnels voulant découvrir une nouvelle astuce métier"
+        ],
+        includes: [
+          "Accès immédiat et illimité aux vidéos de l'atelier",
+          "Fichier source 3D complet inclus dans le téléchargement",
+          "Support questions/réponses illimité dans l'espace membre"
+        ],
+        modules: [
+          {
+            title: "Module Unique : Réalisation pas-à-pas",
+            duration: "2h30 • 8 leçons",
+            lessons: [
+              "Présentation du cas pratique et ressources de départ",
+              "Analyse des contraintes spatiales et zoning rapide",
+              "Modélisation optimisée des points clés du projet",
+              "Astuces de textures express et mise en scène rapide",
+              "Conclusion et conseils de présentation commerciale"
+            ]
+          }
+        ],
+        faq: [
+          {
+            q: "Puis-je utiliser le modèle créé dans mon portfolio ?",
+            r: "Oui ! Les fichiers de l'atelier sont libres de droits pour un usage professionnel de présentation et de portfolio personnel."
+          }
+        ],
+        testimonials: [
+          {
+            name: "Laurent G.",
+            role: "Agenceur d'espace",
+            comment: "Format idéal pour une après-midi de perfectionnement. Efficace, clair et directement applicable.",
+            rating: 5
+          }
+        ]
+      };
+    }
+    
+    setEditingCourse(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        ...patch
+      };
+    });
+  };
 
   // Stripe & Skool Automation states
   const [stripeConfigured, setStripeConfigured] = useState<boolean>(false);
@@ -845,11 +1145,13 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
       stripePromoLink: '',
     };
     setEditingCourse(duplicated);
+    setActiveFormTab('style');
     setIsFormOpen(true);
   };
 
   const handleOpenEditForm = (course: Course) => {
     setEditingCourse({ ...course });
+    setActiveFormTab('style');
     setIsFormOpen(true);
   };
 
@@ -886,6 +1188,7 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
       featured: false,
       order: courses.length + 1
     });
+    setActiveFormTab('style');
     setIsFormOpen(true);
   };
 
@@ -1812,41 +2115,23 @@ const handleSave = async (course) => {
                       </button>
                     </div>
 
+                    <CourseCreationForm
+                      editingCourse={editingCourse}
+                      setEditingCourse={setEditingCourse}
+                      courses={courses}
+                      onClose={() => { setIsFormOpen(false); setEditingCourse(null); }}
+                      onSave={handleSaveCourse}
+                      stripeConfigured={stripeConfigured}
+                      setStripeConfigured={setStripeConfigured}
+                      stripeConfigMessage={stripeConfigMessage}
+                      setStripeConfigMessage={setStripeConfigMessage}
+                      isStripeSyncing={isStripeSyncing}
+                      setIsStripeSyncing={setIsStripeSyncing}
+                    />
+
+                    {/* OLD FORM SECTION WRAPPED TO PREVENT DISPLAY */}
+                    {false && (
                     <form onSubmit={handleSaveCourse} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">ID Unique (Slug URL)</label>
-                        <input
-                          type="text"
-                          value={editingCourse.id || ''}
-                          onChange={(e) => setEditingCourse({ ...editingCourse, id: e.target.value })}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#06bcbf]"
-                          required
-                          disabled={courses.some(c => c.id === editingCourse.id)}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Titre de la formation</label>
-                        <input
-                          type="text"
-                          value={editingCourse.title || ''}
-                          onChange={(e) => setEditingCourse({ ...editingCourse, title: e.target.value })}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#06bcbf]"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Slogan / Accroche</label>
-                        <input
-                          type="text"
-                          value={editingCourse.slogan || ''}
-                          onChange={(e) => setEditingCourse({ ...editingCourse, slogan: e.target.value })}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#06bcbf]"
-                          required
-                        />
-                      </div>
-
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Thématique</label>
@@ -2693,6 +2978,7 @@ const handleSave = async (course) => {
                         </button>
                       </div>
                     </form>
+                    )}
                   </motion.div>
                 </div>
               )}
@@ -3592,6 +3878,160 @@ const handleSave = async (course) => {
 
               </div>
             )}
+
+            {/* BRANDING INTEGRATION: CUSTOM COPYWRITING MODULES FOR OTHER COURSES */}
+            {selectedCourse.id !== 'ia-creatives' && (() => {
+              // Get details based on course ID or fallback
+              let constatTitle = "Le constat";
+              let constatHeading = "Vos compétences méritent une mise à niveau pour rester compétitif.";
+              let constatText1 = "Dans un marché en constante évolution, la stagnation est le principal risque. Vos clients attendent une expertise toujours plus pointue, des présentations plus immersives et un professionnalisme irréprochable.";
+              let constatHighlightText = "Sans formation continue sur les derniers outils et workflows, vous passez plus de temps sur des tâches répétitives et risquez de perdre de précieux contrats.";
+              let constatText2 = "Suivre un programme de formation structuré vous permet de gagner en confiance, d'automatiser vos processus et de livrer des résultats d'exception.";
+              let constatCheck1 = "Gagnez en efficacité et en rapidité au quotidien";
+              let constatCheck2 = "Valorisez vos projets et attirez des clients premium";
+              let constatLabel = "Workflow et productivité";
+              let constatQuote = "L'excellence technique est le meilleur moyen de se démarquer de la concurrence.";
+              
+              let solutionTitle = "La solution";
+              let solutionHeading = "Une méthodologie complète de niveau professionnel";
+              let solutionText = "Suivez un programme pas-à-pas conçu pour les professionnels exigeants. Apprenez les meilleures pratiques, évitez les erreurs classiques et appliquez directement les concepts clés sur vos propres projets.";
+              let solCard1Title = "Structure solide";
+              let solCard1Desc = "Des fondations claires et organisées pour simplifier toutes vos modifications futures.";
+              let solCard2Title = "Optimisation";
+              let solCard2Desc = "Évitez les ralentissements et travaillez de manière fluide, même sur de gros volumes.";
+              let solCard3Title = "Productivité";
+              let solCard3Desc = "Maîtrisez les raccourcis clés et les outils indispensables pour gagner un temps précieux.";
+              
+              let solutionBg = "bg-[#204289]";
+              let solutionAccent = "#06bcbf";
+              let solutionHighlight = "text-[#06bcbf]";
+              let solutionBadgeColor = "text-[#06bcbf]";
+
+              if (selectedCourse.id === 'sketchup-masterclass') {
+                constatHeading = "Le piège de l'apprentissage \"sur le tas\" : des heures perdues et des fichiers trop lourds.";
+                constatText1 = "La plupart des professionnels se lancent sur SketchUp de manière autodidacte. Sans méthode rigoureuse, les projets deviennent rapidement désorganisés : groupes mal nommés, composants dupliqués anarchiquement, géométries inversées.";
+                constatHighlightText = "Dès que vos projets prennent de l'ampleur, votre ordinateur commence à ramer, les rendus plantent et la moindre modification demandée par votre client devient un cauchemar qui vous prend des heures de correction.";
+                constatText2 = "Une méthodologie de modélisation structurée et professionnelle change tout : vous divisez votre temps de modélisation par 3, travaillez en toute fluidité et construisez des modèles sains.";
+                constatCheck1 = "Modélisez proprement avec une structure professionnelle";
+                constatCheck2 = "Modifiez vos projets en un clic, sans tout reconstruire";
+                constatLabel = "La vitesse de la pensée";
+                constatQuote = "La structure est la clé d'un workflow rapide et sans frustration.";
+
+                solutionTitle = "La solution professionnelle";
+                solutionHeading = "La méthode SketchUp Masterclass : Modélisez comme un Pro";
+                solutionText = "Découvrez une logique d'organisation implacable qui vous accompagnera sur tous vos projets. De l'import du plan 2D au nettoyage final du modèle, appliquez une méthodologie pas-à-pas pour libérer votre potentiel créatif.";
+                solCard1Title = "Structure Pro";
+                solCard1Desc = "Utilisez intelligemment les balises, groupes et composants pour rendre votre modèle ultra-souple.";
+                solCard2Title = "Optimisation";
+                solCard2Desc = "Apprenez à nettoyer et purger vos fichiers pour éliminer toute lenteur système.";
+                solCard3Title = "Productivité";
+                solCard3Desc = "Configurez les raccourcis métiers et une interface optimisée pour gagner des heures chaque semaine.";
+                
+                solutionAccent = "#f59e0b";
+                solutionHighlight = "text-amber-400";
+                solutionBadgeColor = "text-amber-400";
+              } else if (selectedCourse.id === 'vray-mastery') {
+                constatHeading = "Savoir modéliser ne suffit plus. Vos clients veulent être émerveillés pour s'engager.";
+                constatText1 = "Aujourd'hui, présenter une simple 3D brute ou des captures d'écran sans vie à vos prospects ne suffit plus à créer le coup de cœur émotionnel. Vos clients ont besoin d'immersion totale pour apprécier la valeur de votre travail.";
+                constatHighlightText = "Sans rendus réalistes de prestige, vous risquez d'être comparé sur les prix, de devoir faire des rabais sur vos honoraires, ou pire, de laisser filer de formidables chantiers de décoration ou d'architecture.";
+                constatText2 = "Le rendu photoréaliste haut de gamme n'est pas le fruit du hasard : c'est une maîtrise méthodique de la lumière, des réglages de caméra physique et des matériaux réalistes.";
+                constatCheck1 = "Provoquez un coup de cœur instantané chez vos clients";
+                constatCheck2 = "Valorisez et vendez vos prestations à leur juste valeur";
+                constatLabel = "L'émotion de la lumière";
+                constatQuote = "Une image de prestige raconte une histoire que les mots ne peuvent pas exprimer.";
+
+                solutionTitle = "La solution immersive";
+                solutionHeading = "La méthode V-Ray Mastery : Créez des rendus dignes d'un photographe d'intérieur";
+                solutionText = "La maîtrise absolue de V-Ray : apprenez à transformer vos modèles SketchUp en perspectives photoréalistes vibrantes. Apprenez à gérer les lumières comme dans un studio photo, à configurer des matériaux réalistes et à optimiser vos réglages.";
+                solCard1Title = "Lumière Naturelle";
+                solCard1Desc = "Maîtrisez les dômes de lumière HDRI, le soleil et les ouvertures pour illuminer parfaitement chaque pièce.";
+                solCard2Title = "Matériaux Réels";
+                solCard2Desc = "Apprenez à paramétrer le relief (bump), la réflexion et le réalisme physique du bois, de la pierre ou du verre.";
+                solCard3Title = "Caméra Physique";
+                solCard3Desc = "Exposez, cadrez et configurez la profondeur de champ pour guider le regard de vos clients de prestige.";
+                
+                solutionAccent = "#818cf8";
+                solutionHighlight = "text-indigo-300";
+                solutionBadgeColor = "text-indigo-300";
+              }
+
+              return (
+                <div className="max-w-7xl mx-auto px-6 mt-16 space-y-16">
+                  {/* 1. THE PROBLEM SECTOR */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center bg-white p-8 md:p-12 rounded-[2.5rem] border border-slate-200/80 shadow-sm">
+                    <div>
+                      <span className="text-xs font-black text-red-500 uppercase tracking-widest block mb-2">{constatTitle}</span>
+                      <h2 className="text-3xl font-black text-slate-900 leading-tight mb-4">
+                        {constatHeading}
+                      </h2>
+                      <div className="space-y-4 text-slate-600 font-medium leading-relaxed mb-6">
+                        <p>{constatText1}</p>
+                        <p className="text-slate-900 font-bold text-base md:text-lg border-l-4 border-indigo-500 pl-4 py-1 leading-relaxed">
+                          {constatHighlightText}
+                        </p>
+                        <p>{constatText2}</p>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex gap-3">
+                          <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">✓</span>
+                          <p className="text-sm text-slate-700 font-bold">{constatCheck1}</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">✓</span>
+                          <p className="text-sm text-slate-700 font-bold">{constatCheck2}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <img 
+                        src="/image25.jpg" 
+                        alt="Illustration Rendu Professionnel" 
+                        className="w-full rounded-3xl object-cover shadow-sm border border-slate-200/60 max-h-[280px]"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 flex flex-col justify-center text-center">
+                        <Sparkles className="w-12 h-12 text-indigo-500 mx-auto mb-4" />
+                        <h4 className="font-extrabold text-slate-900 text-lg mb-2">{constatLabel}</h4>
+                        <p className="text-slate-600 text-base md:text-lg font-extrabold italic leading-relaxed">"{constatQuote}"</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. THE BREAKTHROUGH SWITCH (LA BASCULE) */}
+                  <div className={`${solutionBg} text-white p-8 md:p-12 rounded-[2.5rem] relative overflow-hidden`}>
+                    <div className="absolute top-0 right-0 w-[400px] h-[300px] bg-white/5 blur-[100px] pointer-events-none"></div>
+                    
+                    <div className="max-w-3xl relative z-10">
+                      <span className={`text-xs font-black ${solutionBadgeColor} uppercase tracking-widest block mb-2`}>{solutionTitle}</span>
+                      <h2 className="text-3.5xl font-black tracking-tight leading-tight mb-6">
+                        {solutionHeading}
+                      </h2>
+                      <p className="text-slate-100 font-medium leading-relaxed mb-8">
+                        {solutionText}
+                      </p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                          <Zap className={`w-8 h-8 ${solutionHighlight} mb-3`} />
+                          <h4 className="font-extrabold text-white text-base mb-1">{solCard1Title}</h4>
+                          <p className="text-slate-300 text-xs">{solCard1Desc}</p>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                          <Activity className={`w-8 h-8 ${solutionHighlight} mb-3`} />
+                          <h4 className="font-extrabold text-white text-base mb-1">{solCard2Title}</h4>
+                          <p className="text-slate-300 text-xs">{solCard2Desc}</p>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                          <Award className={`w-8 h-8 ${solutionHighlight} mb-3`} />
+                          <h4 className="font-extrabold text-white text-base mb-1">{solCard3Title}</h4>
+                          <p className="text-slate-300 text-xs">{solCard3Desc}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Split Page Details (Curriculum, Testimonials, What's included, Guarantee) */}
             <div className="max-w-7xl mx-auto px-6 mt-16">
