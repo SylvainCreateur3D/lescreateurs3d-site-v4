@@ -136,6 +136,19 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
 
   // Calculate dynamic FOMO prices & handle Stripe pre-filled promo codes
   const getEffectiveCoursePrice = (course: Course) => {
+    if (!course) {
+      return {
+        basePrice: 0,
+        finalPrice: 0,
+        promoDiscount: 0,
+        isPromoTimerActive: false,
+        stripeLink: '',
+        stripeInstallmentsLink: '',
+        installmentsCount: 3,
+        installmentsPrice: 0,
+        totalInstallmentsPrice: 0
+      };
+    }
     // If originalPrice is not set, or is less than or equal to price, there is no promotion.
     // The active base price is course.price, and no promo timer is active.
     let basePrice = typeof course.price === 'number' ? course.price : 0;
@@ -902,7 +915,7 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
         }
         
         if (courseId) {
-          setSelectedCourseId(courseId);
+          setSelectedCourseId(decodeURIComponent(courseId));
           setIsAdminView(false);
           window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
@@ -1781,7 +1794,7 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
                                   <td className="py-5 px-6 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                       <button
-                                        onClick={() => window.open(`/#formations-catalog?course=${course.id}`, '_blank')}
+                                        onClick={() => selectCourse(course.id)}
                                         className="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
                                         title="Prévisualiser la formation"
                                       >
@@ -3178,7 +3191,7 @@ const handleSave = async (course) => {
                             {/* Details Content */}
                             <div className="p-6 flex flex-col flex-grow">
                               <div className="flex items-center gap-3 mb-3 text-slate-400 text-xs font-extrabold">
-                                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" /> {course.duration.split(' ')[0]}h</span>
+                                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" /> {(course.duration || '0').split(' ')[0]}h</span>
                                 <span>•</span>
                                 <span>{course.lessonsCount} leçons</span>
                                 <span>•</span>
@@ -4047,7 +4060,7 @@ const handleSave = async (course) => {
                       Ce que vous allez savoir faire
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      {selectedCourse.outcomes.map((pt, i) => (
+                      {(selectedCourse.outcomes || []).map((pt, i) => (
                         <div key={i} className="flex items-start gap-3">
                           <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
                           <p className="text-sm font-bold text-slate-700 leading-relaxed">{pt}</p>
@@ -4063,11 +4076,11 @@ const handleSave = async (course) => {
                         <BookOpen className="w-7 h-7 text-[#204289] shrink-0" />
                         Programme détaillé
                       </h2>
-                      <span className="text-xs text-slate-400 font-bold">{selectedCourse.modules.length} modules d'étude</span>
+                      <span className="text-xs text-slate-400 font-bold">{(selectedCourse.modules || []).length} modules d'étude</span>
                     </div>
 
                     <div className="space-y-3">
-                      {selectedCourse.modules.map((mod, index) => {
+                      {(selectedCourse.modules || []).map((mod, index) => {
                         const isExpanded = expandedModuleIndex === index;
                         return (
                           <div 
@@ -4099,7 +4112,7 @@ const handleSave = async (course) => {
                                   className="overflow-hidden border-t border-slate-100"
                                 >
                                   <div className="p-5 bg-slate-50/40 space-y-3">
-                                    {mod.lessons.map((les, lidx) => (
+                                    {(mod.lessons || []).map((les, lidx) => (
                                       <div key={lidx} className="flex items-center gap-3 text-slate-600 font-semibold">
                                         <Play className="w-3.5 h-3.5 text-[#06bcbf] shrink-0 fill-current" />
                                         <span className="text-sm text-slate-700">{les}</span>
@@ -4120,7 +4133,7 @@ const handleSave = async (course) => {
                   <div className="bg-white rounded-[2rem] p-8 border border-slate-200/80 shadow-sm space-y-4">
                     <h4 className="text-xl font-black text-slate-900">Pour qui est faite cette formation ?</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {selectedCourse.audience.map((aud, i) => (
+                      {(selectedCourse.audience || []).map((aud, i) => (
                         <div key={i} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
                           <Users className="w-6 h-6 text-[#204289] mx-auto mb-2" />
                           <p className="text-xs font-black text-slate-800 leading-normal">{aud}</p>
@@ -4156,7 +4169,7 @@ const handleSave = async (course) => {
                     </h2>
 
                     <div className="space-y-3">
-                      {selectedCourse.faq.map((fq, index) => {
+                      {(selectedCourse.faq || []).map((fq, index) => {
                         const isFaqActive = activeFaqIndex === index;
                         return (
                           <div 
@@ -4222,7 +4235,7 @@ const handleSave = async (course) => {
                     </h4>
                     
                     <div className="space-y-3.5">
-                      {selectedCourse.includes.map((inc, i) => (
+                      {(selectedCourse.includes || []).map((inc, i) => (
                         <div key={i} className="flex items-start gap-2.5">
                           <CheckCircle2 className="w-4.5 h-4.5 text-[#06bcbf] mt-0.5 shrink-0" />
                           <span className="text-xs md:text-sm font-bold text-slate-600 leading-normal">{inc}</span>

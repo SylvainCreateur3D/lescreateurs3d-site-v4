@@ -265,8 +265,9 @@ export default function App() {
               <span className="text-xl font-extrabold tracking-tight">Les Créateurs 3D</span>
             </div>
             
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="hidden md:flex items-center gap-6">
               <button onClick={() => navigateTo('home', '#accompagnements')} className={`text-sm font-bold cursor-pointer transition-all ${currentPage === 'home' ? 'text-white hover:text-blue-200' : 'text-blue-100 hover:text-white'}`}>Nos accompagnements & formations</button>
+              <button onClick={() => navigateTo('formations')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'formations' ? 'bg-[#06bcbf] text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Formations e-learning</button>
               <button onClick={() => navigateTo('logiciels')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'logiciels' ? 'bg-[#06bcbf] text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Nos logiciels et outils</button>
             </nav>
             
@@ -300,8 +301,14 @@ export default function App() {
                 Nos accompagnements & formations
               </button>
               <button 
-                onClick={() => navigateTo('logiciels')} 
+                onClick={() => navigateTo('formations')} 
                 className="block text-left w-full text-lg font-black text-[#06bcbf] hover:text-cyan-300 py-2 border-t border-white/10"
+              >
+                Formations e-learning
+              </button>
+              <button 
+                onClick={() => navigateTo('logiciels')} 
+                className="block text-left w-full text-lg font-black text-white hover:text-blue-200 py-2 border-t border-white/10"
               >
                 Nos Logiciels Web (IzyPano & Izy3D)
               </button>
@@ -498,9 +505,7 @@ export default function App() {
 
               {/* Formations Vidéos */}
               <a 
-                href="https://formations.lescreateurs3d.com/" 
-                target="_blank" 
-                rel="noopener noreferrer"
+                href="#formations-catalog" 
                 className="bg-white p-6 rounded-[1.5rem] shadow-xl shadow-slate-200/30 border border-slate-100 hover:border-violet-200 text-center relative group hover:-translate-y-1 transition-all flex flex-col justify-between cursor-pointer"
               >
                 <div>
@@ -797,7 +802,7 @@ export default function App() {
                   <p className="text-slate-300 mb-8 font-medium leading-relaxed">
                     Des vidéos concrètes à suivre à votre rythme. Le complément idéal pour acquérir des compétences ciblées (créer des textures réalistes, gérer vos éclairages ou faire de la post-production).
                   </p>
-                  <a href="https://formations.lescreateurs3d.com/" target="_blank" rel="noopener noreferrer" className="mt-auto self-start text-white font-bold flex items-center gap-2 hover:gap-3 transition-all bg-white/10 hover:bg-white/20 px-6 py-3 rounded-full">
+                  <a href="#formations-catalog" className="mt-auto self-start text-white font-bold flex items-center gap-2 hover:gap-3 transition-all bg-white/10 hover:bg-white/20 px-6 py-3 rounded-full">
                     Accéder au catalogue autonome <ChevronRight className="w-5 h-5" />
                   </a>
                 </div>
@@ -1069,7 +1074,7 @@ export default function App() {
                 <ul className="space-y-4">
                   <li><a href="#accompagnements" className="hover:text-blue-400 transition-colors font-bold">Accompagnement Individuel</a></li>
                   <li><a href="#accompagnements" className="hover:text-blue-400 transition-colors font-bold">Accompagnement d'Équipe</a></li>
-                  <li><a href="https://formations.lescreateurs3d.com/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors font-bold">Formations vidéos e-learning</a></li>
+                  <li><a href="#formations-catalog" className="hover:text-blue-400 transition-colors font-bold">Formations vidéos e-learning</a></li>
                 </ul>
               </div>
               

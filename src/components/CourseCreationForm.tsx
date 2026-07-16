@@ -439,7 +439,16 @@ export default function CourseCreationForm({
                 <input
                   type="text"
                   value={editingCourse.id || ''}
-                  onChange={(e) => setEditingCourse({ ...editingCourse, id: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const sanitized = val
+                      .normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '')
+                      .toLowerCase()
+                      .replace(/[^a-z0-9\-_]/g, '-')
+                      .replace(/-+/g, '-');
+                    setEditingCourse({ ...editingCourse, id: sanitized });
+                  }}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#06bcbf]"
                   required
                   disabled={courses.some(c => c.id === editingCourse.id)}
