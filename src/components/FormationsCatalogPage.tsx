@@ -285,6 +285,21 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
   }, []);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isUploadingMedia, setIsUploadingMedia] = useState<boolean>(false);
+  const [isInIframe, setIsInIframe] = useState<boolean>(false);
+  const [unauthorizedDomainError, setUnauthorizedDomainError] = useState<boolean>(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: 'course' | 'promo';
+    id: string;
+    label: string;
+  } | null>(null);
+
+  useEffect(() => {
+    try {
+      setIsInIframe(window.self !== window.top);
+    } catch (e) {
+      setIsInIframe(true);
+    }
+  }, []);
 
   // Masquer le widget Elfsight Chatbot sur cette page
   useEffect(() => {
@@ -349,6 +364,7 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
   const handleGoogleLogin = async () => {
     setIsUploadingMedia(true);
     setLoginError(null);
+    setUnauthorizedDomainError(false);
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
@@ -369,6 +385,12 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
       }
     } catch (err: any) {
       console.error("[Google Auth Error]", err);
+      const isDomainError = err.code === 'auth/unauthorized-domain' || 
+                            String(err.message).includes('unauthorized-domain') ||
+                            String(err).includes('unauthorized-domain');
+      if (isDomainError) {
+        setUnauthorizedDomainError(true);
+      }
       setLoginError("Erreur d'authentification Google : " + (err.message || String(err)));
     } finally {
       setIsUploadingMedia(false);
@@ -669,46 +691,55 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
     saveCoursesToStorage(updated);
   };
 
-  const handleDeleteCourse = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette formation de votre catalogue ?')) {
-      try {
-        const updated = courses.filter(c => c.id !== id);
-        
-        // 1. Sync updated courses to the server first (especially important for passcode login!)
-        let serverSyncSuccess = false;
-        const token = sessionStorage.getItem('l3d_admin_token') || '';
-        if (token) {
-          const res = await fetch('/api/courses', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(updated)
-          });
-          if (res.ok) {
-            serverSyncSuccess = true;
-          }
+  const handleDeleteCourse = (id: string) => {
+    const course = courses.find(c => c.id === id);
+    setDeleteConfirm({
+      type: 'course',
+      id,
+      label: course?.title || id
+    });
+  };
+
+  const executeDeleteCourse = async (id: string) => {
+    try {
+      const updated = courses.filter(c => c.id !== id);
+      
+      // 1. Sync updated courses to the server first (especially important for passcode login!)
+      let serverSyncSuccess = false;
+      const token = sessionStorage.getItem('l3d_admin_token') || '';
+      if (token) {
+        const res = await fetch('/api/courses', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(updated)
+        });
+        if (res.ok) {
+          serverSyncSuccess = true;
         }
-        
-        // 2. Try to delete document directly from Firestore on client side (Option 1 Google Sign-In)
-        try {
-          await deleteDoc(doc(db, 'courses', id));
-        } catch (dbErr) {
-          const isPasscodeSession = token && token.startsWith('l3d_sess_');
-          if (isPasscodeSession && serverSyncSuccess) {
-            console.log("[Client] Client-side Firestore delete failed (this is expected for passcode login, server has handled it successfully):", dbErr);
-          } else {
-            throw dbErr;
-          }
-        }
-        
-        // Filter out locally and update UI
-        setCourses(updated);
-      } catch (error) {
-        console.error("Erreur lors de la suppression de la formation :", error);
-        alert("Erreur lors de la suppression de la formation.");
       }
+      
+      // 2. Try to delete document directly from Firestore on client side (Option 1 Google Sign-In)
+      try {
+        await deleteDoc(doc(db, 'courses', id));
+      } catch (dbErr) {
+        const isPasscodeSession = token && token.startsWith('l3d_sess_');
+        if (isPasscodeSession && serverSyncSuccess) {
+          console.log("[Client] Client-side Firestore delete failed (this is expected for passcode login, server has handled it successfully):", dbErr);
+        } else {
+          throw dbErr;
+        }
+      }
+      
+      // Filter out locally and update UI
+      setCourses(updated);
+    } catch (error) {
+      console.error("Erreur lors de la suppression de la formation :", error);
+      alert("Erreur lors de la suppression de la formation.");
+    } finally {
+      setDeleteConfirm(null);
     }
   };
 
@@ -718,13 +749,20 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
   };
 
   const handleDeletePromoCode = (codeStr: string) => {
-    if (window.confirm(`Voulez-vous vraiment supprimer le code promo '${codeStr}' ?`)) {
-      const updated = promoCodes.filter(c => c.code !== codeStr);
-      savePromoCodesToStorage(updated);
-      if (appliedPromo && appliedPromo.code === codeStr) {
-        handleRemovePromoCode();
-      }
+    setDeleteConfirm({
+      type: 'promo',
+      id: codeStr,
+      label: codeStr
+    });
+  };
+
+  const executeDeletePromoCode = (codeStr: string) => {
+    const updated = promoCodes.filter(c => c.code !== codeStr);
+    savePromoCodesToStorage(updated);
+    if (appliedPromo && appliedPromo.code === codeStr) {
+      handleRemovePromoCode();
     }
+    setDeleteConfirm(null);
   };
 
   const handleCreatePromoCode = async (e: React.FormEvent) => {
@@ -1022,10 +1060,74 @@ export default function FormationsCatalogPage({ onGoBack }: FormationsCatalogPag
                     </div>
                   )}
 
+                  {unauthorizedDomainError && (
+                    <div className="p-5 bg-amber-950/40 border border-amber-900/50 rounded-2xl flex flex-col gap-3 text-xs text-amber-300 leading-relaxed shadow-xl my-2">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500 animate-pulse" />
+                        <div>
+                          <h4 className="font-bold text-sm text-amber-200 mb-1">🔑 Solution de Connexion Directe</h4>
+                          <p className="mb-2 text-[11px] text-amber-300/90">
+                            Firebase Authentication bloque la connexion Google directe sur <strong>{window.location.hostname}</strong> car ce domaine personnalisé n'est pas autorisé.
+                          </p>
+                          <p className="mb-2 text-[11px] text-amber-300/90 font-semibold">
+                            Puisque vous n'avez pas les droits d'écriture sur les paramètres de ce projet Firebase système (ce qui est normal pour cet environnement), 
+                            la solution est de vous connecter via l'une des adresses système officielles déjà autorisées à 100%.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <span className="font-bold text-amber-200 text-[11px] block">👉 Comment sauvegarder vos prix définitivement en 1 minute :</span>
+                        
+                        <div className="space-y-2">
+                          <p className="text-[11px] text-slate-300">
+                            1. Cliquez sur le bouton ci-dessous pour ouvrir l'espace d'administration sécurisé officiel :
+                          </p>
+                          <a 
+                            href="https://les-cr-ateurs-3d-680100005101.europe-west2.run.app/#formations-catalog?admin=true" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#06bcbf] hover:bg-[#05a5a7] text-slate-950 font-black text-xs rounded-xl transition-all cursor-pointer shadow-lg w-full justify-center"
+                          >
+                            Ouvrir l'Espace Admin Autorisé ↗
+                          </a>
+                        </div>
+
+                        <p className="text-[10px] text-slate-400">
+                          2. Sur cette page, cliquez sur <strong>Se connecter avec Google</strong> et choisissez votre adresse <strong>lescreateurs3d@gmail.com</strong>.
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          3. Faites vos modifications de prix et enregistrez. Les modifications seront alors <strong>définitivement sauvegardées dans Firestore</strong> et seront immédiatement visibles sur votre site principal <span className="text-[#06bcbf] font-mono">lescreateurs3d.com</span> !
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-4">
                     {/* Method 1: Google Login */}
                     <div className="space-y-2">
                       <span className="block text-[10px] font-black tracking-widest uppercase text-slate-500">Option 1: Google Sign-In (Recommandé)</span>
+                      
+                      {isInIframe && (
+                        <div className="p-4 bg-amber-950/40 border border-amber-900/50 rounded-2xl flex items-start gap-3 text-xs text-amber-300 leading-relaxed shadow-xl my-2">
+                          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500 animate-pulse" />
+                          <div>
+                            <h4 className="font-bold text-amber-200 mb-0.5">⚠️ Cadre Aperçu (iFrame) Détecté</h4>
+                            <p className="text-[11px] text-amber-300/90 mb-2">
+                              Le navigateur bloque l'ouverture des fenêtres d'authentification Google sécurisées (Popups) lorsqu'elles sont déclenchées depuis l'intérieur d'un cadre d'intégration (iFrame).
+                            </p>
+                            <a 
+                              href={window.location.origin + window.location.pathname} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#06bcbf] hover:bg-[#05a5a7] text-slate-950 font-black text-[11px] rounded-lg transition-all cursor-pointer shadow"
+                            >
+                              Ouvrir l'application dans un nouvel onglet ↗
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
                       <button
                         onClick={handleGoogleLogin}
                         disabled={isUploadingMedia}
@@ -3868,6 +3970,81 @@ const handleSave = async (course) => {
                   <span>Tester le lien de démo</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {deleteConfirm && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeleteConfirm(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+            
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-6 z-10 overflow-hidden"
+            >
+              {/* Decorative gradient overlay */}
+              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-red-500 to-amber-500" />
+              
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-red-950/30 border border-red-800/40 flex items-center justify-center text-red-400">
+                  <Trash2 className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-white">Confirmation de suppression</h3>
+                  <span className="text-[10px] font-black tracking-widest uppercase text-red-400/80">Action Irréversible</span>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  Êtes-vous sûr de vouloir supprimer définitivement :
+                </p>
+                <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+                  <span className="font-extrabold text-white text-xs block truncate">
+                    {deleteConfirm.type === 'course' ? 'Formation :' : 'Code promo :'}
+                  </span>
+                  <span className="text-[#06bcbf] font-black text-sm block mt-0.5 truncate">
+                    {deleteConfirm.label}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Cette action supprimera l'élément de votre catalogue de manière permanente.
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border border-slate-700 text-center"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (deleteConfirm.type === 'course') {
+                      executeDeleteCourse(deleteConfirm.id);
+                    } else if (deleteConfirm.type === 'promo') {
+                      executeDeletePromoCode(deleteConfirm.id);
+                    }
+                  }}
+                  className="flex-1 py-3.5 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg shadow-red-900/20 text-center"
+                >
+                  Supprimer définitivement
+                </button>
               </div>
             </motion.div>
           </div>

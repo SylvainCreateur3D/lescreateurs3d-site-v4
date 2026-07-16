@@ -55,10 +55,10 @@ export default function LogicielsPage({ onGoBack }: LogicielsPageProps) {
             Développé par Les Créateurs 3D
           </span>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
-            Nos outils pour transformer vos projets SketchUp en <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-indigo-600 to-amber-500">présentations qui marquent</span>
+            Nos outils pour transformer vos projets d'aménagement en <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-indigo-600 to-amber-500">présentations qui marquent</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-600 leading-relaxed font-semibold">
-            En tant que spécialistes SketchUp, nous avons conçu 3 outils complémentaires pour présenter vos projets à vos clients de façon immersive, sans effort.<br />
+            En tant que spécialistes des outils 3D et IA, nous avons conçu 3 outils complémentaires pour présenter vos projets à vos clients de façon immersive, sans effort.<br />
             <strong className="block text-indigo-600 font-extrabold text-xl md:text-2xl my-2">Un compte = 3 logiciels liés</strong>
             Commençables gratuitement (grâce à nos versions d'accès libre), ils fonctionnent en parfaite synergie et ne nécessitent d'ailleurs qu'un seul et unique abonnement unifié pour les professionnels qui souhaitent exploiter toutes leurs fonctionnalités avancées.
           </p>
@@ -433,12 +433,7 @@ export default function LogicielsPage({ onGoBack }: LogicielsPageProps) {
                   </p>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200/70 rounded-2xl p-4 flex items-start gap-3">
-                  <span className="text-lg shrink-0 mt-0.5">🚧</span>
-                  <p className="text-xs sm:text-sm font-semibold text-amber-800 leading-relaxed">
-                    <strong>IzyProject</strong> est actuellement en développement actif. Disponible prochainement pour les utilisateurs de l'écosystème.
-                  </p>
-                </div>
+
               </div>
 
               {/* L'argument écosystème */}
@@ -448,6 +443,10 @@ export default function LogicielsPage({ onGoBack }: LogicielsPageProps) {
                   <li className="text-sm text-slate-600 font-semibold leading-snug flex items-start gap-2">
                     <span className="text-[#d9b732] mt-0.5">•</span>
                     <span><strong>Une seule connexion pour les trois apps</strong> : vos visites IzyPano et vos modèles Izy3D sont détectés automatiquement dans IzyProject — rien à réimporter.</span>
+                  </li>
+                  <li className="text-sm text-slate-600 font-semibold leading-snug flex items-start gap-2">
+                    <span className="text-[#d9b732] mt-0.5">•</span>
+                    <span><strong>Portfolio instantané</strong> : créez votre portfolio professionnel en quelques clics à partir de vos projets existants dans l'écosystème pour valoriser votre savoir-faire.</span>
                   </li>
                 </ul>
               </div>
@@ -460,7 +459,8 @@ export default function LogicielsPage({ onGoBack }: LogicielsPageProps) {
                     "Un seul lien à envoyer au client — fini les pièces jointes éparpillées",
                     "L'évolution du projet et les décisions sont traçables — historique clair à chaque étape",
                     "Messagerie intégrée — tous les échanges centralisés, plus de mails perdus",
-                    "Page à votre nom — votre cabinet en avant, expérience premium"
+                    "Page à votre nom — votre cabinet en avant, expérience premium",
+                    "Portfolio professionnel généré en quelques clics à partir de vos projets existants"
                   ].map((pt, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600 font-semibold leading-tight">
                       <span className="w-5 h-5 rounded-full bg-[#d9b732]/15 flex items-center justify-center shrink-0 mt-0.5">
@@ -473,10 +473,21 @@ export default function LogicielsPage({ onGoBack }: LogicielsPageProps) {
               </div>
 
               {/* Phrase de clôture */}
-              <div className="border-t border-slate-100 pt-5">
+              <div className="border-t border-slate-100 pt-5 space-y-6">
                 <p className="text-base font-extrabold text-[#d9b732] italic">
                   « IzyPano immerge, Izy3D montre les détails, IzyProject fait avancer le projet. »
                 </p>
+                <div className="pt-2">
+                  <a 
+                    href="https://project.izyshare.com/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#d9b732] hover:bg-[#c2a12b] active:scale-95 text-white font-extrabold rounded-full shadow-lg shadow-yellow-500/20 transition-all text-base group"
+                  >
+                    Découvrir IzyProject
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </a>
+                </div>
               </div>
             </div>
 
