@@ -379,7 +379,7 @@ export default function App() {
                     Découvrez les formations & Accompagnements
                     <ArrowRight className="w-5 h-5" />
                   </a>
-                  <a href="https://www.skool.com/lescreateurs3d/about" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto px-8 py-4 bg-white text-slate-700 border border-slate-200 font-extrabold rounded-full hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all flex items-center justify-center gap-2 text-lg shadow-sm text-center">
+                  <a href="https://lakahut.com/j/lescreateurs3d?l=mon-site" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto px-8 py-4 bg-white text-slate-700 border border-slate-200 font-extrabold rounded-full hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all flex items-center justify-center gap-2 text-lg shadow-sm text-center">
                     <MessageCircle className="w-5 h-5 text-slate-400" />
                     Rejoindre la communauté gratuite
                   </a>
@@ -940,7 +940,7 @@ export default function App() {
             <p className="text-xl text-slate-600 mb-12 leading-relaxed font-medium">
               Un doute sur une texture ? Un rendu qui ne se lance pas ou une astuce technique qui vous échappe ? Rejoignez notre communauté gratuite pour poser vos questions à d'autres concepteurs d'espaces.
             </p>
-            <a href="https://www.skool.com/lescreateurs3d/about" target="_blank" rel="noopener noreferrer" className="px-10 py-5 bg-white text-blue-600 font-extrabold border-2 border-blue-100 rounded-full hover:border-blue-600 hover:bg-blue-50 active:scale-95 transition-all shadow-sm text-lg flex items-center justify-center gap-3 mx-auto max-w-fit">
+            <a href="https://lakahut.com/j/lescreateurs3d?l=mon-site" target="_blank" rel="noopener noreferrer" className="px-10 py-5 bg-white text-blue-600 font-extrabold border-2 border-blue-100 rounded-full hover:border-blue-600 hover:bg-blue-50 active:scale-95 transition-all shadow-sm text-lg flex items-center justify-center gap-3 mx-auto max-w-fit">
                <Users className="w-6 h-6" />
               Rejoindre l'espace d'entraide gratuit
             </a>
