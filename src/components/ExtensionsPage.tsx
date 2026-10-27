@@ -101,10 +101,10 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
           <p className="text-lg md:text-xl text-slate-600 leading-relaxed font-semibold">
             Regroupées en suites par usage, nos extensions s'installent en une seule fois.<br />
             <strong className="block text-indigo-600 font-extrabold text-xl md:text-2xl my-2">
-              Une extension installée = toutes vos suites accessibles
+              Achat unique — accès à vie. Pas d'abonnement.
             </strong>
-            Achetez une suite ou plusieurs — les nouvelles fonctionnalités de vos suites possédées
-            s'activent automatiquement à chaque mise à jour.
+            Contrairement à la plupart des éditeurs, vous payez une fois et l'outil est à vous pour toujours.
+            Les mises à jour et les nouveaux outils de vos suites sont inclus définitivement.
           </p>
         </motion.div>
 
@@ -160,10 +160,10 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                     <div className={`${suite.bgLight} ${suite.borderColor} border rounded-2xl p-8 text-center space-y-4`}>
                       <div className="text-4xl font-black text-slate-900">
                         {suite.price} €
-                        <span className="text-sm font-bold text-slate-400 ml-1">/ an</span>
+                        <span className="text-sm font-bold text-slate-400 ml-1">une fois</span>
                       </div>
                       <p className="text-sm text-slate-500 font-medium">
-                        Mises à jour et nouveaux outils inclus pendant 1 an
+                        Accès à vie — mises à jour et nouveaux outils inclus pour toujours
                       </p>
                       <button
                         className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
@@ -201,10 +201,10 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Pack Toutes Suites</h2>
           <p className="text-xl text-blue-100 font-semibold mb-2">
-            Les 3 suites pour le prix de 2 — <span className="text-white font-extrabold">99 € / an</span>
+            Les 3 suites pour le prix de 2 — <span className="text-white font-extrabold">99 € une fois</span>
           </p>
           <p className="text-blue-200 font-medium mb-8 max-w-xl mx-auto">
-            Toutes les extensions actuelles et futures. Un seul achat, un seul renouvellement.
+            Toutes les extensions actuelles et futures. Un seul achat, à vie. Zéro abonnement.
           </p>
           <button
             className="inline-flex items-center gap-2 px-8 py-4 text-base font-bold text-indigo-700 bg-white rounded-full hover:bg-blue-50 transition-all hover:scale-105 active:scale-95 shadow-lg cursor-pointer"
@@ -220,13 +220,13 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
           {[
             {
               icon: ShieldCheck,
-              title: 'Licence sécurisée',
-              desc: 'Activation par clé liée à votre machine. Renouvellement optionnel après 1 an.',
+              title: 'Licence à vie',
+              desc: 'Vous payez une fois, l\'outil est à vous pour toujours. Aucun abonnement, aucun renouvellement.',
             },
             {
               icon: RefreshCw,
-              title: 'Mises à jour automatiques',
-              desc: 'Les nouveaux outils d\'une suite que vous possédez s\'activent sans rien faire.',
+              title: 'Mises à jour incluses à vie',
+              desc: 'Les nouveaux outils d\'une suite que vous possédez s\'activent automatiquement, pour toujours.',
             },
             {
               icon: Zap,
