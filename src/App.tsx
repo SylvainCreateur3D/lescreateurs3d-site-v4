@@ -1,6 +1,7 @@
 import { motion, useInView } from 'motion/react';
 import { useState, useEffect, useRef } from 'react';
 import LogicielsPage from './components/LogicielsPage';
+import ExtensionsPage from './components/ExtensionsPage';
 import FormationsCatalogPage from './components/FormationsCatalogPage';
 import AdminStatsPage from './components/AdminStatsPage';
 import { trackPageView, trackEvent } from './lib/analytics';
@@ -55,7 +56,7 @@ function AnimatedCounter({ end, suffix = "", duration = 2000 }: { end: number, s
 
 export default function App() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState<'home' | 'logiciels' | 'formations' | 'admin'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'logiciels' | 'formations' | 'admin' | 'extensions'>('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Track page views on page changes
@@ -172,6 +173,9 @@ export default function App() {
       if (window.location.hash === '#logiciels') {
         setCurrentPage('logiciels');
         window.scrollTo({ top: 0, behavior: 'instant' });
+      } else if (window.location.hash === '#extensions') {
+        setCurrentPage('extensions');
+        window.scrollTo({ top: 0, behavior: 'instant' });
       } else if (window.location.hash.startsWith('#formations-catalog')) {
         setCurrentPage('formations');
         window.scrollTo({ top: 0, behavior: 'instant' });
@@ -198,10 +202,12 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const navigateTo = (page: 'home' | 'logiciels' | 'formations' | 'admin', hash?: string) => {
+  const navigateTo = (page: 'home' | 'logiciels' | 'formations' | 'admin' | 'extensions', hash?: string) => {
     setMobileMenuOpen(false);
     if (page === 'logiciels') {
       window.location.hash = '#logiciels';
+    } else if (page === 'extensions') {
+      window.location.hash = '#extensions';
     } else if (page === 'formations') {
       window.location.hash = '#formations-catalog';
     } else if (page === 'admin') {
@@ -268,7 +274,8 @@ export default function App() {
             <nav className="hidden md:flex items-center gap-6">
               <button onClick={() => navigateTo('home', '#accompagnements')} className={`text-sm font-bold cursor-pointer transition-all ${currentPage === 'home' ? 'text-white hover:text-blue-200' : 'text-blue-100 hover:text-white'}`}>Nos accompagnements & formations</button>
               <button onClick={() => navigateTo('formations')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'formations' ? 'bg-[#06bcbf] text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Formations e-learning</button>
-              <button onClick={() => navigateTo('logiciels')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'logiciels' ? 'bg-[#06bcbf] text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Nos logiciels et outils</button>
+              <button onClick={() => navigateTo('logiciels')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'logiciels' ? 'bg-[#06bcbf] text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Nos logiciels</button>
+              <button onClick={() => navigateTo('extensions')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'extensions' ? 'bg-amber-500 text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Extensions SketchUp</button>
             </nav>
             
             <div className="flex items-center gap-3">
@@ -306,11 +313,17 @@ export default function App() {
               >
                 Formations e-learning
               </button>
-              <button 
-                onClick={() => navigateTo('logiciels')} 
+              <button
+                onClick={() => navigateTo('logiciels')}
                 className="block text-left w-full text-lg font-black text-white hover:text-blue-200 py-2 border-t border-white/10"
               >
-                Nos Logiciels Web (IzyPano & Izy3D)
+                Nos logiciels
+              </button>
+              <button
+                onClick={() => navigateTo('extensions')}
+                className="block text-left w-full text-lg font-black text-amber-300 hover:text-amber-200 py-2 border-t border-white/10"
+              >
+                Extensions SketchUp
               </button>
               <button 
                 onClick={() => {
@@ -1020,6 +1033,9 @@ export default function App() {
         )}
         {currentPage === 'logiciels' && (
           <LogicielsPage onGoBack={() => navigateTo('home')} />
+        )}
+        {currentPage === 'extensions' && (
+          <ExtensionsPage onGoBack={() => navigateTo('home')} />
         )}
         {currentPage === 'formations' && (
           <FormationsCatalogPage onGoBack={() => navigateTo('home')} />

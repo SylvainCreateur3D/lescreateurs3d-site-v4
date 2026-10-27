@@ -233,7 +233,8 @@ export default function AdminStatsPage({ onGoBack }: AdminStatsPageProps) {
 
   const pageNames: { [key: string]: string } = {
     home: 'Accueil (Landing)',
-    logiciels: 'Logiciels & Outils',
+    logiciels: 'Logiciels',
+    extensions: 'Extensions SketchUp',
     formations: 'Catalogue Formations'
   };
 
