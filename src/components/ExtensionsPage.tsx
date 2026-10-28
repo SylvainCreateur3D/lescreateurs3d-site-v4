@@ -104,7 +104,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
               Achat unique — accès à vie. Pas d'abonnement.
             </strong>
             Contrairement à la plupart des éditeurs, vous payez une fois et l'outil est à vous pour toujours.
-            Les mises à jour et les nouveaux outils de vos suites sont inclus définitivement.
+            Des vidéos de démonstration détaillées vous permettent de voir exactement ce que vous achetez avant de vous décider.
           </p>
         </motion.div>
 
@@ -163,7 +163,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                         <span className="text-sm font-bold text-slate-400 ml-1">une fois</span>
                       </div>
                       <p className="text-sm text-slate-500 font-medium">
-                        Accès à vie — mises à jour et nouveaux outils inclus pour toujours
+                        Accès à vie — regardez les vidéos de démo avant d'acheter
                       </p>
                       <button
                         className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
@@ -172,12 +172,6 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                       >
                         Acquérir la suite
                         <ArrowRight className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-slate-600 bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-all cursor-pointer"
-                        onClick={() => alert('Essai gratuit 14 jours — bientôt disponible.')}
-                      >
-                        Essai gratuit 14 jours
                       </button>
                     </div>
                   </div>
@@ -204,7 +198,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
             Les 3 suites pour le prix de 2 — <span className="text-white font-extrabold">99 € une fois</span>
           </p>
           <p className="text-blue-200 font-medium mb-8 max-w-xl mx-auto">
-            Toutes les extensions actuelles et futures. Un seul achat, à vie. Zéro abonnement.
+            Toutes les extensions actuelles. Un seul achat, à vie. Zéro abonnement.
           </p>
           <button
             className="inline-flex items-center gap-2 px-8 py-4 text-base font-bold text-indigo-700 bg-white rounded-full hover:bg-blue-50 transition-all hover:scale-105 active:scale-95 shadow-lg cursor-pointer"
@@ -225,8 +219,8 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
             },
             {
               icon: RefreshCw,
-              title: 'Mises à jour incluses à vie',
-              desc: 'Les nouveaux outils d\'une suite que vous possédez s\'activent automatiquement, pour toujours.',
+              title: 'Mises à jour incluses',
+              desc: 'Les corrections et améliorations des outils que vous possédez s\'appliquent automatiquement.',
             },
             {
               icon: Zap,
