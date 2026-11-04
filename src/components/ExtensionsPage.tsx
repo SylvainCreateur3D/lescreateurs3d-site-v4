@@ -11,58 +11,96 @@ import {
   Star,
   ShieldCheck,
   RefreshCw,
+  Film,
 } from 'lucide-react';
+import { FALLBACK_PRICES, PAYMENT_AVAILABLE, formatPrice, openCheckout, usePackPrices, type PackKey } from '../lib/paddle';
 
 interface ExtensionsPageProps {
   onGoBack: () => void;
 }
 
-const SUITES = [
+const SUITES: {
+  id: string;
+  key: PackKey;
+  name: string;
+  tagline: string;
+  icon: typeof Settings;
+  colorHex: string;
+  bgLight: string;
+  borderColor: string;
+  textColor: string;
+  tools: string[];
+  description: string;
+}[] = [
   {
     id: 'configurateurs',
+    key: 'configurators',
     name: 'Suite Configurateurs',
     tagline: 'Générez des fenêtres, escaliers et mobilier paramétrique en quelques clics.',
     icon: Settings,
-    color: 'indigo',
     colorHex: '#4f46e5',
     bgLight: 'bg-indigo-50',
     borderColor: 'border-indigo-100',
     textColor: 'text-indigo-700',
-    tools: ['Configurateur de fenêtres', 'Configurateur d\'escaliers', 'Configurateur de mobilier'],
-    price: '49',
+    tools: ['Configurateur de fenêtres', "Configurateur d'escaliers", 'Configurateur de mobilier'],
     description: 'Créez des éléments paramétriques précis directement dans SketchUp, sans modélisation manuelle fastidieuse.',
   },
   {
     id: 'modelisateurs',
+    key: 'modeling',
     name: 'Suite Modélisateurs',
     tagline: 'Arrondis, moulures, loft et push/pull sur formes complexes.',
     icon: Package,
-    color: 'cyan',
     colorHex: '#06bcbf',
     bgLight: 'bg-cyan-50',
     borderColor: 'border-cyan-100',
     textColor: 'text-[#06bcbf]',
     tools: ['Arrondir les angles', 'Moulures et profils', 'Loft entre sections', 'Push/pull sur courbe'],
-    price: '49',
     description: 'Des outils de modélisation avancée qui comblent les lacunes natives de SketchUp pour les formes complexes.',
   },
   {
-    id: 'manipulateurs',
-    name: 'Suite Manipulateurs',
-    tagline: 'Gizmo de déplacement, placement précis et création de vidéo.',
+    id: 'media',
+    key: 'media',
+    name: 'Suite Media',
+    tagline: 'Vidéos caméra fluides et planches PDF pour présenter vos projets.',
+    icon: Film,
+    colorHex: '#e11d48',
+    bgLight: 'bg-rose-50',
+    borderColor: 'border-rose-100',
+    textColor: 'text-rose-600',
+    tools: ['Vidéos caméra fluides', 'Planches PDF'],
+    description: 'Passez de votre maquette SketchUp à une vidéo animée et à des planches PDF prêtes à envoyer au client.',
+  },
+  {
+    id: 'control',
+    key: 'control',
+    name: 'Suite Control',
+    tagline: 'Gizmo de déplacement, placement précis et textures sur surfaces courbes.',
     icon: Move,
-    color: 'amber',
     colorHex: '#f59e0b',
     bgLight: 'bg-amber-50',
     borderColor: 'border-amber-100',
     textColor: 'text-amber-600',
-    tools: ['Gizmo de déplacement', 'Placement facilité', 'Création de vidéo'],
-    price: '49',
-    description: 'Manipulez, positionnez et animez vos objets avec une précision et une fluidité inégalées.',
+    tools: ["Gizmo de déplacement et d'animation (IzyMove)", 'Gizmo UV et textures sur courbes (IzyUV)'],
+    description: 'Manipulez, positionnez et animez vos objets, puis habillez-les de textures, avec une précision et une fluidité inégalées.',
   },
 ];
 
 export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
+  const { amounts, currency } = usePackPrices();
+  // Prix de Paddle (devise et TVA du visiteur) ; valeurs de secours en euros si Paddle ne répond pas.
+  const priceOf = (key: PackKey) => formatPrice(amounts[key] ?? FALLBACK_PRICES[key], amounts[key] === undefined ? 'EUR' : currency);
+  const separate = SUITES.reduce((sum, suite) => sum + (amounts[suite.key] ?? FALLBACK_PRICES[suite.key]), 0);
+  const suiteAmount = amounts.suite ?? FALLBACK_PRICES.suite;
+  const buy = (key: PackKey) => {
+    if (!PAYMENT_AVAILABLE) {
+      alert('Le paiement ouvre très bientôt. Écrivez-nous à dautelle.sylvain@gmail.com pour être prévenu(e) dès le lancement.');
+      return;
+    }
+    openCheckout(key).catch(() => alert('Le paiement est momentanément indisponible. Réessayez dans un instant ou contactez-nous.'));
+  };
+  const savedPercent = Math.round((1 - suiteAmount / separate) * 100);
+
   return (
     <div className="relative overflow-hidden bg-slate-50">
 
@@ -88,6 +126,10 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
           transition={{ duration: 0.5 }}
           className="text-center max-w-4xl mx-auto mb-20 md:mb-28"
         >
+          <div className="inline-flex items-center justify-center rounded-3xl bg-gradient-to-br from-slate-900 to-[#204289] px-8 py-5 mb-8 shadow-xl">
+            <img src="/izystudio-logo.png" alt="IzyStudio" className="h-12 sm:h-16 w-auto" />
+          </div>
+          <br />
           <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 text-amber-700 text-sm font-extrabold mb-6 border border-amber-100 shadow-sm">
             <Puzzle className="w-4 h-4" />
             Extensions SketchUp — Les Créateurs 3D
@@ -159,7 +201,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                   <div className="lg:col-span-5">
                     <div className={`${suite.bgLight} ${suite.borderColor} border rounded-2xl p-8 text-center space-y-4`}>
                       <div className="text-4xl font-black text-slate-900">
-                        {suite.price} €
+                        {priceOf(suite.key)}
                         <span className="text-sm font-bold text-slate-400 ml-1">une fois</span>
                       </div>
                       <p className="text-sm text-slate-500 font-medium">
@@ -168,7 +210,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                       <button
                         className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
                         style={{ backgroundColor: suite.colorHex }}
-                        onClick={() => alert('Paiement bientôt disponible — contactez-nous pour accéder en avant-première.')}
+                        onClick={() => buy(suite.key)}
                       >
                         Acquérir la suite
                         <ArrowRight className="w-4 h-4" />
@@ -195,19 +237,32 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Pack Toutes Suites</h2>
           <p className="text-xl text-blue-100 font-semibold mb-2">
-            Les 3 suites pour le prix de 2 — <span className="text-white font-extrabold">99 € une fois</span>
+            Les 4 suites — <span className="text-white font-extrabold">{priceOf('suite')} une fois</span>
+            {savedPercent > 0 && (
+              <span className="block text-base text-blue-200 mt-1">
+                au lieu de <span className="line-through">{formatPrice(separate, amounts.suite === undefined ? 'EUR' : currency)}</span> pris séparément (−{savedPercent} %)
+              </span>
+            )}
           </p>
           <p className="text-blue-200 font-medium mb-8 max-w-xl mx-auto">
             Toutes les extensions actuelles. Un seul achat, à vie. Zéro abonnement.
           </p>
           <button
             className="inline-flex items-center gap-2 px-8 py-4 text-base font-bold text-indigo-700 bg-white rounded-full hover:bg-blue-50 transition-all hover:scale-105 active:scale-95 shadow-lg cursor-pointer"
-            onClick={() => alert('Pack bientôt disponible — contactez-nous pour accéder en avant-première.')}
+            onClick={() => buy('suite')}
           >
             Obtenir le pack complet
             <ArrowRight className="w-5 h-5" />
           </button>
         </motion.section>
+
+        {/* Paiement et conditions */}
+        <p className="text-center text-sm text-slate-500 font-semibold mb-10">
+          Paiement sécurisé par Paddle, revendeur officiel — TVA incluse. Remboursement sous 14 jours.{' '}
+          <a href="/cgv" className="text-indigo-600 underline">Conditions de vente</a> ·{' '}
+          <a href="/remboursement" className="text-indigo-600 underline">Remboursement</a> ·{' '}
+          <a href="/confidentialite" className="text-indigo-600 underline">Confidentialité</a>
+        </p>
 
         {/* Garanties */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">

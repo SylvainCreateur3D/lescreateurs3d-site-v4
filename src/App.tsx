@@ -2,6 +2,7 @@ import { motion, useInView } from 'motion/react';
 import { useState, useEffect, useRef } from 'react';
 import LogicielsPage from './components/LogicielsPage';
 import ExtensionsPage from './components/ExtensionsPage';
+import LegalPage, { type LegalKind } from './components/LegalPage';
 import FormationsCatalogPage from './components/FormationsCatalogPage';
 import AdminStatsPage from './components/AdminStatsPage';
 import { trackPageView, trackEvent } from './lib/analytics';
@@ -56,7 +57,7 @@ function AnimatedCounter({ end, suffix = "", duration = 2000 }: { end: number, s
 
 export default function App() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState<'home' | 'logiciels' | 'formations' | 'admin' | 'extensions'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'logiciels' | 'formations' | 'admin' | 'extensions' | LegalKind>('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Track page views on page changes
@@ -169,7 +170,25 @@ export default function App() {
   }, [currentPage]);
 
   useEffect(() => {
+    const LEGAL_PATHS: Record<string, LegalKind> = {
+      '/mentions-legales': 'mentions',
+      '/cgv': 'cgv',
+      '/remboursement': 'remboursement',
+      '/confidentialite': 'confidentialite',
+    };
     const handleHashChange = () => {
+      const path = window.location.pathname.replace(/\/+$/, '');
+      if (path === '/extensions') {
+        setCurrentPage('extensions');
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        return;
+      }
+      const legal = LEGAL_PATHS[path];
+      if (legal) {
+        setCurrentPage(legal);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        return;
+      }
       if (window.location.hash === '#logiciels') {
         setCurrentPage('logiciels');
         window.scrollTo({ top: 0, behavior: 'instant' });
@@ -181,6 +200,18 @@ export default function App() {
         window.scrollTo({ top: 0, behavior: 'instant' });
       } else if (window.location.hash === '#admin') {
         setCurrentPage('admin');
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } else if (window.location.hash === '#mentions-legales') {
+        setCurrentPage('mentions');
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } else if (window.location.hash === '#cgv') {
+        setCurrentPage('cgv');
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } else if (window.location.hash === '#remboursement') {
+        setCurrentPage('remboursement');
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } else if (window.location.hash === '#confidentialite') {
+        setCurrentPage('confidentialite');
         window.scrollTo({ top: 0, behavior: 'instant' });
       } else {
         setCurrentPage('home');
@@ -204,6 +235,9 @@ export default function App() {
 
   const navigateTo = (page: 'home' | 'logiciels' | 'formations' | 'admin' | 'extensions', hash?: string) => {
     setMobileMenuOpen(false);
+    // Depuis une page légale (/cgv…) : on revient à la racine du site avant de changer de page.
+    const leavingPath = window.location.pathname !== '/';
+    if (leavingPath) window.history.replaceState(null, '', '/' + window.location.search);
     if (page === 'logiciels') {
       window.location.hash = '#logiciels';
     } else if (page === 'extensions') {
@@ -226,6 +260,7 @@ export default function App() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
+    if (leavingPath) window.dispatchEvent(new Event('hashchange'));
   };
 
   useEffect(() => {
@@ -1043,6 +1078,9 @@ export default function App() {
         {currentPage === 'admin' && (
           <AdminStatsPage onGoBack={() => navigateTo('home')} />
         )}
+        {(currentPage === 'mentions' || currentPage === 'cgv' || currentPage === 'remboursement' || currentPage === 'confidentialite') && (
+          <LegalPage kind={currentPage} onGoBack={() => navigateTo('home')} />
+        )}
       </main>
 
       {/* Footer */}
@@ -1111,9 +1149,11 @@ export default function App() {
               >
                 © {new Date().getFullYear()} Les Créateurs 3D. Tous droits réservés.
               </p>
-              <div className="flex gap-8">
-                <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
-                <a href="#" className="hover:text-white transition-colors">CGV</a>
+              <div className="flex flex-wrap gap-x-8 gap-y-2">
+                <a href="/mentions-legales" className="hover:text-white transition-colors">Mentions légales</a>
+                <a href="/cgv" className="hover:text-white transition-colors">CGV</a>
+                <a href="/remboursement" className="hover:text-white transition-colors">Remboursement</a>
+                <a href="/confidentialite" className="hover:text-white transition-colors">Confidentialité</a>
               </div>
             </div>
           </div>
