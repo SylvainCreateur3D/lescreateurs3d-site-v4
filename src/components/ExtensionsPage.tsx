@@ -258,7 +258,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
 
         {/* Paiement et conditions */}
         <p className="text-center text-sm text-slate-500 font-semibold mb-10">
-          Paiement sécurisé par Paddle, revendeur officiel — TVA incluse. Remboursement sous 14 jours.{' '}
+          Paiement sécurisé par Lemon Squeezy, revendeur officiel — TVA incluse. Remboursement sous 14 jours.{' '}
           <a href="/cgv" className="text-indigo-600 underline">Conditions de vente</a> ·{' '}
           <a href="/remboursement" className="text-indigo-600 underline">Remboursement</a> ·{' '}
           <a href="/confidentialite" className="text-indigo-600 underline">Confidentialité</a>
