@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import LogicielsPage from './components/LogicielsPage';
 import ExtensionsPage from './components/ExtensionsPage';
 import LegalPage, { type LegalKind } from './components/LegalPage';
-import FormationsCatalogPage from './components/FormationsCatalogPage';
 import AdminStatsPage from './components/AdminStatsPage';
 import { trackPageView, trackEvent } from './lib/analytics';
 import {
@@ -195,9 +194,6 @@ export default function App() {
       } else if (window.location.hash === '#extensions') {
         setCurrentPage('extensions');
         window.scrollTo({ top: 0, behavior: 'instant' });
-      } else if (window.location.hash.startsWith('#formations-catalog')) {
-        setCurrentPage('formations');
-        window.scrollTo({ top: 0, behavior: 'instant' });
       } else if (window.location.hash === '#admin') {
         setCurrentPage('admin');
         window.scrollTo({ top: 0, behavior: 'instant' });
@@ -308,7 +304,7 @@ export default function App() {
             
             <nav className="hidden md:flex items-center gap-6">
               <button onClick={() => navigateTo('home', '#accompagnements')} className={`text-sm font-bold cursor-pointer transition-all ${currentPage === 'home' ? 'text-white hover:text-blue-200' : 'text-blue-100 hover:text-white'}`}>Nos accompagnements & formations</button>
-              <button onClick={() => navigateTo('formations')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'formations' ? 'bg-[#06bcbf] text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Formations e-learning</button>
+              <a href="https://www.skool.com/lescreateurs3d/about" target="_blank" rel="noopener noreferrer" className="text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full text-blue-100 hover:text-white hover:bg-white/5">Communauté</a>
               <button onClick={() => navigateTo('logiciels')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'logiciels' ? 'bg-[#06bcbf] text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Nos logiciels</button>
               <button onClick={() => navigateTo('extensions')} className={`text-sm font-black cursor-pointer transition-all px-3 py-1 rounded-full ${currentPage === 'extensions' ? 'bg-amber-500 text-white ring-2 ring-white/10 shadow-md' : 'text-blue-100 hover:text-white hover:bg-white/5'}`}>Extensions SketchUp</button>
             </nav>
@@ -342,12 +338,7 @@ export default function App() {
               >
                 Nos accompagnements & formations
               </button>
-              <button 
-                onClick={() => navigateTo('formations')} 
-                className="block text-left w-full text-lg font-black text-[#06bcbf] hover:text-cyan-300 py-2 border-t border-white/10"
-              >
-                Formations e-learning
-              </button>
+              <a href="https://www.skool.com/lescreateurs3d/about" target="_blank" rel="noopener noreferrer" className="block text-left w-full text-lg font-black text-[#06bcbf] hover:text-cyan-300 py-2 border-t border-white/10">Communauté</a>
               <button
                 onClick={() => navigateTo('logiciels')}
                 className="block text-left w-full text-lg font-black text-white hover:text-blue-200 py-2 border-t border-white/10"
@@ -511,13 +502,13 @@ export default function App() {
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/50 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
           <div className="max-w-7xl mx-auto px-6 relative z-10">
             <div className="text-center mb-20 reveal">
-              <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-6 tracking-tight">4 espaces pour vous former, à votre rythme.</h2>
+              <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-6 tracking-tight">3 espaces pour vous former, à votre rythme.</h2>
               <p className="text-xl text-slate-600 max-w-3xl mx-auto font-medium">Parce qu'on ne passe pas de la découverte d'un logiciel 3D à une présentation de projet parfaite en un jour, nous avons structuré pour vous cet écosystème progressif.</p>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 relative">
               {/* Connecting line for desktop */}
-              <div className="hidden lg:block absolute top-[44px] left-[10%] right-[10%] h-[3px] bg-gradient-to-r from-red-200 via-blue-200 via-violet-200 to-orange-200 -z-10 rounded-full"></div>
+              <div className="hidden lg:block absolute top-[44px] left-[10%] right-[10%] h-[3px] bg-gradient-to-r from-red-200 via-blue-200 to-orange-200 -z-10 rounded-full"></div>
               
               {/* YT */}
               <a 
@@ -551,20 +542,6 @@ export default function App() {
                 </div>
               </a>
 
-              {/* Formations Vidéos */}
-              <a 
-                href="#formations-catalog" 
-                className="bg-white p-6 rounded-[1.5rem] shadow-xl shadow-slate-200/30 border border-slate-100 hover:border-violet-200 text-center relative group hover:-translate-y-1 transition-all flex flex-col justify-between cursor-pointer"
-              >
-                <div>
-                  <div className="w-[88px] h-[88px] mx-auto bg-slate-50 group-hover:bg-violet-50 rounded-2xl flex items-center justify-center mb-8 border border-slate-100 shadow-sm transition-colors">
-                    <MonitorPlay className="w-10 h-10 text-slate-400 group-hover:text-violet-600 transition-colors" />
-                  </div>
-                  <h3 className="text-xl font-extrabold mb-3 text-slate-900 group-hover:text-violet-600 transition-colors">3. Formations Vidéos (L'Autonomie)</h3>
-                  <p className="text-slate-600 text-sm font-medium leading-relaxed">Des cursus structurés de A à Z en vidéo à suivre à votre rythme. Maîtrisez les textures, la lumière ou la post-production en autonomie complète.</p>
-                </div>
-              </a>
-              
               {/* Accompagnement */}
               <a 
                 href="#accompagnements"
@@ -575,7 +552,7 @@ export default function App() {
                   <div className="w-[88px] h-[88px] mx-auto bg-orange-50 group-hover:bg-orange-100/50 rounded-2xl flex items-center justify-center mb-8 border border-orange-100 shadow-sm transition-colors">
                     <TrendingUp className="w-10 h-10 text-orange-500" />
                   </div>
-                  <h3 className="text-xl font-extrabold mb-3 text-slate-900 group-hover:text-orange-600 transition-colors">4. Accompagnements (Le Coaching)</h3>
+                  <h3 className="text-xl font-extrabold mb-3 text-slate-900 group-hover:text-orange-600 transition-colors">3. Accompagnements (Le Coaching)</h3>
                   <p className="text-slate-600 text-sm font-medium leading-relaxed">Arrêtez de tâtonner. Un suivi individuel sur-mesure sur vos propres projets avec un cadre clair pour produire de magnifiques visuels d'espaces, sans stress.</p>
                 </div>
               </a>
@@ -743,6 +720,10 @@ export default function App() {
               <p className="text-xl text-slate-300 font-medium font-bold">
                 Que vous conceviez votre tout premier aménagement ou que vous cherchiez à optimiser vos rendus pour vos clients, nous adaptons notre cadre à votre niveau, sans stress.
               </p>
+              <p className="mt-6 text-lg text-slate-300 font-medium">
+                Vous préférez apprendre en vidéo, à votre rythme ? Les formations e-learning sont disponibles sur{' '}
+                <a href="https://www.skool.com/lescreateurs3d/about" target="_blank" rel="noopener noreferrer" className="text-white font-bold underline underline-offset-4 hover:text-blue-300 transition-colors">la communauté</a>.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
@@ -808,7 +789,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Group & E-learning */}
+              {/* Group & Communauté */}
               <div className="xl:col-span-5 flex flex-col gap-8">
                 
                 {/* Group */}
@@ -836,22 +817,22 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* E-learning */}
-                <div id="formations" className="flex-1 bg-white/10 backdrop-blur-md rounded-[2rem] p-8 border border-white/20 hover:bg-white/15 transition-colors flex flex-col group reveal" style={{ transitionDelay: '200ms' }}>
+                {/* Communauté */}
+                <div className="flex-1 bg-white/10 backdrop-blur-md rounded-[2rem] p-8 border border-white/20 hover:bg-white/15 transition-colors flex flex-col group reveal" style={{ transitionDelay: '200ms' }}>
                   <div className="flex justify-between items-start mb-4 gap-4">
                     <div>
-                      <span className="text-violet-300 text-xs font-extrabold uppercase tracking-widest mb-2 block">Pratique en autonomie</span>
-                      <h3 className="text-3xl font-extrabold text-white">E-learning vidéo</h3>
+                      <span className="text-violet-300 text-xs font-extrabold uppercase tracking-widest mb-2 block">Entraide gratuite</span>
+                      <h3 className="text-3xl font-extrabold text-white">La communauté</h3>
                     </div>
                     <div className="p-3 bg-violet-500/20 text-violet-300 rounded-2xl border border-violet-500/30 shrink-0">
-                      <MonitorPlay className="w-6 h-6" />
+                      <Users className="w-6 h-6" />
                     </div>
                   </div>
                   <p className="text-slate-300 mb-8 font-medium leading-relaxed">
-                    Des vidéos concrètes à suivre à votre rythme. Le complément idéal pour acquérir des compétences ciblées (créer des textures réalistes, gérer vos éclairages ou faire de la post-production).
+                    Un rendu qui ne se lance pas, une texture qui résiste ? Posez vos questions, partagez vos projets et échangez avec d'autres concepteurs dans notre espace d'entraide gratuit.
                   </p>
-                  <a href="#formations-catalog" className="mt-auto self-start text-white font-bold flex items-center gap-2 hover:gap-3 transition-all bg-white/10 hover:bg-white/20 px-6 py-3 rounded-full">
-                    Accéder au catalogue autonome <ChevronRight className="w-5 h-5" />
+                  <a href="https://www.skool.com/lescreateurs3d/about" target="_blank" rel="noopener noreferrer" className="mt-auto self-start text-white font-bold flex items-center gap-2 hover:gap-3 transition-all bg-white/10 hover:bg-white/20 px-6 py-3 rounded-full">
+                    Rejoindre la communauté <ChevronRight className="w-5 h-5" />
                   </a>
                 </div>
 
@@ -1007,7 +988,7 @@ export default function App() {
               {[
                 {
                   q: "Quelle formation SketchUp choisir pour débuter en architecture ?",
-                  r: "Si vous débutez, notre chaîne YouTube vous permet de faire vos premiers pas. Pour une méthode de A à Z, notre e-learning autonome ou notre accompagnement individuel vous donneront le cadre nécessaire."
+                  r: "Si vous débutez, notre chaîne YouTube vous permet de faire vos premiers pas. Pour une méthode de A à Z, notre communauté d'entraide ou notre accompagnement individuel vous donneront le cadre nécessaire."
                 },
                 {
                   q: "Faut-il connaitre V-Ray, Enscape ou l'IA avant de commencer un accompagnement ?",
@@ -1072,9 +1053,6 @@ export default function App() {
         {currentPage === 'extensions' && (
           <ExtensionsPage onGoBack={() => navigateTo('home')} />
         )}
-        {currentPage === 'formations' && (
-          <FormationsCatalogPage onGoBack={() => navigateTo('home')} />
-        )}
         {currentPage === 'admin' && (
           <AdminStatsPage onGoBack={() => navigateTo('home')} />
         )}
@@ -1128,7 +1106,7 @@ export default function App() {
                 <ul className="space-y-4">
                   <li><a href="#accompagnements" className="hover:text-blue-400 transition-colors font-bold">Accompagnement Individuel</a></li>
                   <li><a href="#accompagnements" className="hover:text-blue-400 transition-colors font-bold">Accompagnement d'Équipe</a></li>
-                  <li><a href="#formations-catalog" className="hover:text-blue-400 transition-colors font-bold">Formations vidéos e-learning</a></li>
+                  <li><a href="https://www.skool.com/lescreateurs3d/about" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors font-bold">La communauté</a></li>
                 </ul>
               </div>
               
