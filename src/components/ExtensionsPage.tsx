@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Film,
 } from 'lucide-react';
-import { FALLBACK_PRICES, PAYMENT_AVAILABLE, formatPrice, openCheckout, usePackPrices, type PackKey } from '../lib/paddle';
+import { FR_VAT, PAYMENT_AVAILABLE, PRICES_HT, buyUrl, formatPrice, type PackKey } from '../lib/payments';
 
 interface ExtensionsPageProps {
   onGoBack: () => void;
@@ -87,17 +87,17 @@ const SUITES: {
 ];
 
 export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
-  const { amounts, currency } = usePackPrices();
-  // Prix de Paddle (devise et TVA du visiteur) ; valeurs de secours en euros si Paddle ne répond pas.
-  const priceOf = (key: PackKey) => formatPrice(amounts[key] ?? FALLBACK_PRICES[key], amounts[key] === undefined ? 'EUR' : currency);
-  const separate = SUITES.reduce((sum, suite) => sum + (amounts[suite.key] ?? FALLBACK_PRICES[suite.key]), 0);
-  const suiteAmount = amounts.suite ?? FALLBACK_PRICES.suite;
+  // Prix hors taxes ; la TVA du pays de l'acheteur est ajoutée sur la page de paiement Stripe.
+  const priceOf = (key: PackKey) => formatPrice(PRICES_HT[key]);
+  const priceFr = (key: PackKey) => formatPrice(Math.round(PRICES_HT[key] * (1 + FR_VAT) * 100) / 100);
+  const separate = SUITES.reduce((sum, suite) => sum + PRICES_HT[suite.key], 0);
+  const suiteAmount = PRICES_HT.suite;
   const buy = (key: PackKey) => {
     if (!PAYMENT_AVAILABLE) {
       alert('Le paiement ouvre très bientôt. Écrivez-nous à dautelle.sylvain@gmail.com pour être prévenu(e) dès le lancement.');
       return;
     }
-    openCheckout(key).catch(() => alert('Le paiement est momentanément indisponible. Réessayez dans un instant ou contactez-nous.'));
+    window.location.href = buyUrl(key);
   };
   const savedPercent = Math.round((1 - suiteAmount / separate) * 100);
 
@@ -202,8 +202,11 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                     <div className={`${suite.bgLight} ${suite.borderColor} border rounded-2xl p-8 text-center space-y-4`}>
                       <div className="text-4xl font-black text-slate-900">
                         {priceOf(suite.key)}
-                        <span className="text-sm font-bold text-slate-400 ml-1">une fois</span>
+                        <span className="text-sm font-bold text-slate-400 ml-1">HT, une fois</span>
                       </div>
+                      <p className="text-xs text-slate-400 font-medium -mt-2">
+                        Soit {priceFr(suite.key)} TTC en France · TVA de votre pays ajoutée au paiement
+                      </p>
                       <p className="text-sm text-slate-500 font-medium">
                         Accès à vie — regardez les vidéos de démo avant d'acheter
                       </p>
@@ -237,10 +240,11 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Pack Toutes Suites</h2>
           <p className="text-xl text-blue-100 font-semibold mb-2">
-            Les 4 suites — <span className="text-white font-extrabold">{priceOf('suite')} une fois</span>
+            Les 4 suites — <span className="text-white font-extrabold">{priceOf('suite')} HT une fois</span>
+            <span className="block text-sm text-blue-200 mt-1">soit {priceFr('suite')} TTC en France</span>
             {savedPercent > 0 && (
               <span className="block text-base text-blue-200 mt-1">
-                au lieu de <span className="line-through">{formatPrice(separate, amounts.suite === undefined ? 'EUR' : currency)}</span> pris séparément (−{savedPercent} %)
+                au lieu de <span className="line-through">{formatPrice(separate)} HT</span> pris séparément (−{savedPercent} %)
               </span>
             )}
           </p>
@@ -258,7 +262,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
 
         {/* Paiement et conditions */}
         <p className="text-center text-sm text-slate-500 font-semibold mb-10">
-          Paiement sécurisé par Lemon Squeezy, revendeur officiel — TVA incluse. Remboursement sous 14 jours.{' '}
+          Paiement sécurisé par Stripe (« Vendu via Link »), revendeur officiel — prix hors taxes, TVA de votre pays ajoutée au paiement. Remboursement sous 14 jours.{' '}
           <a href="/cgv" className="text-indigo-600 underline">Conditions de vente</a> ·{' '}
           <a href="/remboursement" className="text-indigo-600 underline">Remboursement</a> ·{' '}
           <a href="/confidentialite" className="text-indigo-600 underline">Confidentialité</a>

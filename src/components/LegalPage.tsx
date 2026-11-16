@@ -61,8 +61,8 @@ const PAGES: Record<LegalKind, { title: string; body: () => ReactNode }> = {
         </Section>
         <Section title="Vente en ligne des extensions SketchUp IzyStudio">
           <p>
-            Les paiements des extensions IzyStudio sont traités par Lemon Squeezy (lemonsqueezy.com), qui agit en tant que
-            revendeur officiel (« merchant of record ») : Lemon Squeezy encaisse le paiement, applique la TVA et émet la facture.
+            Les paiements des extensions IzyStudio sont traités par Stripe (stripe.com), via son service Link, qui agit en tant que
+            revendeur officiel (« merchant of record », achat « Vendu via Link ») : Stripe encaisse le paiement, applique la TVA et émet la facture.
             Voir les <a className="text-indigo-600 font-bold underline" href="/cgv">conditions générales de vente</a>.
           </p>
         </Section>
@@ -95,16 +95,18 @@ const PAGES: Record<LegalKind, { title: string; body: () => ReactNode }> = {
         </Section>
         <Section title="2. Paiement et revendeur officiel">
           <p>
-            Les commandes sont traitées par <strong>Lemon Squeezy</strong>, revendeur officiel (« merchant of record »).
-            Lemon Squeezy encaisse le paiement, perçoit et reverse la TVA et vous envoie la facture. Les conditions d'achat de
-            Lemon Squeezy s'appliquent à votre commande en complément des présentes. {EDITEUR.nom} reste l'éditeur des logiciels et le
+            Les commandes sont traitées par <strong>Stripe</strong>, via son service <strong>Link</strong>, revendeur officiel
+            (« merchant of record » : la commande apparaît « Vendu via Link »). Stripe encaisse le paiement, perçoit et reverse la TVA
+            et vous envoie le reçu et la facture. Les conditions de paiement affichées sur la page de paiement s'appliquent à votre
+            commande en complément des présentes. {EDITEUR.nom} reste l'éditeur des logiciels et le
             concédant de la licence.
           </p>
         </Section>
         <Section title="3. Produits et prix">
           <p>
-            Chaque offre donne accès aux extensions décrites sur la page « Extensions SketchUp ». Les prix sont indiqués en euros,
-            toutes taxes comprises (TVA du pays de l'acheteur incluse). Le prix applicable est celui affiché au moment de la commande.
+            Chaque offre donne accès aux extensions décrites sur la page « Extensions SketchUp ». Les prix sont indiqués en euros
+            hors taxes, avec leur équivalent toutes taxes comprises pour un acheteur en France ; la TVA (ou taxe équivalente) du pays
+            de l'acheteur est calculée et ajoutée sur la page de paiement, avant validation de la commande. Le prix applicable est celui affiché au moment de la commande.
           </p>
         </Section>
         <Section title="4. Commande et livraison">
@@ -143,7 +145,7 @@ const PAGES: Record<LegalKind, { title: string; body: () => ReactNode }> = {
         <Section title="10. Droit applicable et médiation">
           <p>
             Les présentes conditions sont soumises au droit français. En cas de litige, vous pouvez d'abord nous écrire à {mail}, ou
-            vous adresser à Lemon Squeezy, qui traite votre paiement.
+            vous adresser au support Link de Stripe, qui traite votre paiement.
             {MEDIATEUR && <> Si le litige persiste, vous pouvez recourir gratuitement au médiateur de la consommation : {MEDIATEUR}.</>}
           </p>
         </Section>
@@ -163,8 +165,8 @@ const PAGES: Record<LegalKind, { title: string; body: () => ReactNode }> = {
         </Section>
         <Section title="Comment faire">
           <p>
-            Écrivez-nous à {mail} en indiquant l'adresse e-mail utilisée pour l'achat, ou adressez votre demande à Lemon Squeezy, qui traite le
-            paiement (lien de contact de votre reçu). Le remboursement est effectué sur le moyen de paiement utilisé.
+            Écrivez-nous à {mail} en indiquant l'adresse e-mail utilisée pour l'achat, ou adressez votre demande au support Link de Stripe,
+            qui traite le paiement (lien de contact de votre reçu). Le remboursement est effectué sur le moyen de paiement utilisé.
           </p>
         </Section>
         <Section title="Après le remboursement">
@@ -189,15 +191,15 @@ const PAGES: Record<LegalKind, { title: string; body: () => ReactNode }> = {
         </Section>
         <Section title="Données collectées lors d'un achat d'extension">
           <ul className="list-disc pl-6 space-y-1">
-            <li><strong>Paiement</strong> : traité directement par Lemon Squeezy (nom, e-mail, pays, moyen de paiement). Nous ne recevons ni ne conservons vos données bancaires. Lemon Squeezy est responsable de ce traitement : voir sa politique de confidentialité sur lemonsqueezy.com.</li>
-            <li><strong>Licence</strong> : nous recevons de Lemon Squeezy votre adresse e-mail et les références de la commande, afin de créer votre licence et de vous envoyer votre clé et vos liens de téléchargement.</li>
+            <li><strong>Paiement</strong> : traité directement par Stripe et son service Link (nom, e-mail, pays, moyen de paiement). Nous ne recevons ni ne conservons vos données bancaires. Stripe est responsable de ce traitement : voir sa politique de confidentialité sur stripe.com/privacy.</li>
+            <li><strong>Licence</strong> : nous recevons de Stripe votre adresse e-mail et les références de la commande, afin de créer votre licence et de vous envoyer votre clé et vos liens de téléchargement.</li>
             <li><strong>Activation</strong> : lorsque vous activez une licence dans SketchUp, une empreinte anonymisée de votre ordinateur (non réversible), son nom et son système (Windows ou macOS) sont enregistrés pour appliquer la limite de 2 ordinateurs.</li>
           </ul>
           <p>Bases légales : exécution du contrat (livraison de la licence), obligations légales (comptabilité), intérêt légitime (sécurité et lutte contre la fraude).</p>
         </Section>
         <Section title="Prestataires">
           <p>
-            Lemon Squeezy (paiement), Keygen (gestion des licences), notre fournisseur d'envoi d'e-mails, Google Cloud (serveur d'achat, région Europe) et
+            Stripe et Link (paiement), Keygen (gestion des licences), notre fournisseur d'envoi d'e-mails, Google Cloud (serveur d'achat, région Europe) et
             Vercel (hébergement du site). Certains sont situés hors de l'Union européenne ; les transferts s'appuient sur les garanties prévues par le RGPD.
           </p>
         </Section>
