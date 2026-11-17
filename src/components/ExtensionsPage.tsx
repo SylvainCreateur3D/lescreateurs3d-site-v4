@@ -35,33 +35,41 @@ const SUITES: {
   {
     id: 'configurateurs',
     key: 'configurators',
-    name: 'Suite Configurateurs',
-    tagline: 'Générez des fenêtres, escaliers et mobilier paramétrique en quelques clics.',
+    name: 'IzyStudio Configurators',
+    tagline: 'Fenêtres, portes, escaliers, dressings, cuisines : générez-les en quelques clics.',
     icon: Settings,
     colorHex: '#4f46e5',
     bgLight: 'bg-indigo-50',
     borderColor: 'border-indigo-100',
     textColor: 'text-indigo-700',
-    tools: ['Configurateur de fenêtres', "Configurateur d'escaliers", 'Configurateur de mobilier'],
-    description: 'Créez des éléments paramétriques précis directement dans SketchUp, sans modélisation manuelle fastidieuse.',
+    tools: ['Fenêtres et portes paramétriques', 'Escaliers paramétriques', 'Dressings, cuisines et meubles sur mesure (IzyModul)'],
+    description: 'Créez des éléments paramétriques précis directement dans SketchUp : menuiseries, escaliers, dressings, cuisines et meubles, sans modélisation manuelle fastidieuse.',
   },
   {
     id: 'modelisateurs',
     key: 'modeling',
-    name: 'Suite Modélisateurs',
-    tagline: 'Arrondis, moulures, loft et push/pull sur formes complexes.',
+    name: 'IzyStudio Modeling',
+    tagline: 'Murs, sols, moulures, arrondis, loft et déformations : modélisez ce que SketchUp rend difficile.',
     icon: Package,
     colorHex: '#e11d48',
     bgLight: 'bg-rose-50',
     borderColor: 'border-rose-100',
     textColor: 'text-rose-600',
-    tools: ['Arrondir les angles', 'Moulures et profils', 'Loft entre sections', 'Push/pull sur courbe'],
-    description: 'Des outils de modélisation avancée qui comblent les lacunes natives de SketchUp pour les formes complexes.',
+    tools: [
+      'Murs et sols dessinés en direct',
+      'Moulures et cimaises à tracer avec leur profil',
+      'Arrondis, chanfreins et profils',
+      'Loft entre sections',
+      'Pliage, courbure et déformation FFD',
+      'Push/pull sur surface courbe',
+      'Treillis et édition de sommets',
+    ],
+    description: 'Des outils de modélisation avancée qui comblent les lacunes natives de SketchUp : de l\'architecture (murs, sols, moulures) aux formes complexes (arrondis, loft, déformations).',
   },
   {
     id: 'media',
     key: 'media',
-    name: 'Suite Media',
+    name: 'IzyStudio Media',
     tagline: 'Vidéos caméra fluides et planches PDF pour présenter vos projets.',
     icon: Film,
     colorHex: '#06bcbf',
@@ -74,15 +82,19 @@ const SUITES: {
   {
     id: 'control',
     key: 'control',
-    name: 'Suite Control',
-    tagline: 'Gizmo de déplacement, placement précis et textures sur surfaces courbes.',
+    name: 'IzyStudio Control',
+    tagline: 'Déplacez, placez et animez vos objets — avec des parentés — puis texturez les surfaces courbes.',
     icon: Move,
     colorHex: '#f59e0b',
     bgLight: 'bg-amber-50',
     borderColor: 'border-amber-100',
     textColor: 'text-amber-600',
-    tools: ["Gizmo de déplacement et d'animation (IzyMove)", 'Gizmo UV et textures sur courbes (IzyUV)'],
-    description: 'Manipulez, positionnez et animez vos objets, puis habillez-les de textures, avec une précision et une fluidité inégalées.',
+    tools: [
+      "Gizmo de déplacement et d'animation (IzyMove)",
+      'Animations de déplacement avec liens de parenté',
+      'Gizmo UV et textures sur courbes (IzyUV)',
+    ],
+    description: 'Manipulez, positionnez et animez vos objets, y compris avec des liens de parenté entre eux, puis habillez-les de textures, avec une précision et une fluidité inégalées.',
   },
 ];
 
@@ -142,7 +154,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-slate-600 leading-relaxed font-semibold">
-            Quatre suites d'extensions, à acheter séparément ou en un seul pack.<br />
+            Quatre barres d'outils pour SketchUp, à acheter séparément ou réunies dans IzyStudio Complet.<br />
             <strong className="block text-indigo-600 font-extrabold text-xl md:text-2xl my-2">
               Achat unique — licence à vie. Pas d'abonnement.
             </strong>
@@ -159,7 +171,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="relative mb-10 overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-[#1e2a6b] to-[#204289] text-white shadow-2xl"
         >
-          {/* Les couleurs des 4 suites */}
+          {/* Les couleurs des 4 barres d'outils */}
           <div className="flex h-2">
             {SUITES.map((suite) => (
               <div key={suite.id} className="flex-1" style={{ backgroundColor: suite.colorHex }} />
@@ -177,9 +189,9 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                   <span className="rounded-full bg-amber-400 px-3 py-1.5 text-sm font-black text-slate-900">−{savedPercent} %</span>
                 )}
               </div>
-              <h2 className="text-4xl font-extrabold leading-tight sm:text-5xl">Pack Toutes Suites</h2>
+              <h2 className="text-4xl font-extrabold leading-tight sm:text-5xl">IzyStudio Complet</h2>
               <p className="max-w-xl text-lg font-semibold text-blue-100">
-                Les 4 suites IzyStudio en un seul achat : tout ce qu'il faut pour modéliser, configurer, présenter et piloter vos projets dans SketchUp.
+                Les 4 barres d'outils IzyStudio en un seul achat : tout ce qu'il faut pour configurer, modéliser, présenter et piloter vos projets dans SketchUp.
               </p>
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {SUITES.map((suite) => {
@@ -242,9 +254,9 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
           </div>
         </motion.section>
 
-        {/* Ou une suite à l'unité */}
+        {/* Ou une barre d'outils à l'unité */}
         <div className="mb-20">
-          <p className="mb-4 text-center text-sm font-extrabold uppercase tracking-widest text-slate-400">Ou choisissez une suite à l'unité</p>
+          <p className="mb-4 text-center text-sm font-extrabold uppercase tracking-widest text-slate-400">Ou choisissez une barre d'outils à l'unité</p>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {SUITES.map((suite) => {
               const Icon = suite.icon;
@@ -288,7 +300,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                   <div className="lg:col-span-7 space-y-6">
                     <div className="flex items-center gap-3">
                       <span className={`px-4 py-1.5 ${suite.bgLight} ${suite.borderColor} border rounded-full text-xs font-black tracking-widest ${suite.textColor} uppercase`}>
-                        Suite d'extensions
+                        Barre d'outils
                       </span>
                     </div>
                     <div>
@@ -335,7 +347,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                         style={{ backgroundColor: suite.colorHex }}
                         onClick={() => buy(suite.key)}
                       >
-                        Acquérir la suite
+                        Acquérir cette barre d'outils
                         <ArrowRight className="w-4 h-4" />
                       </button>
                     </div>
@@ -355,9 +367,9 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
           className="mb-16 flex flex-col items-center justify-between gap-6 rounded-[2rem] bg-gradient-to-br from-indigo-600 to-[#204289] p-8 text-center text-white sm:flex-row sm:text-left"
         >
           <div>
-            <p className="text-2xl font-extrabold">Pack Toutes Suites — {priceOf('suite')} HT</p>
+            <p className="text-2xl font-extrabold">IzyStudio Complet — {priceOf('suite')} HT</p>
             <p className="font-medium text-blue-200">
-              Les 4 suites, une seule clé de licence{savedPercent > 0 ? `, −${savedPercent} % par rapport à l'achat séparé` : ''}.
+              Les 4 barres d'outils, une seule clé de licence{savedPercent > 0 ? `, −${savedPercent} % par rapport à l'achat séparé` : ''}.
             </p>
           </div>
           <button
@@ -388,12 +400,12 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
             {
               icon: KeyRound,
               title: 'Une clé, 2 ordinateurs',
-              desc: 'Une seule clé de licence pour toutes vos suites, à activer sur 2 ordinateurs.',
+              desc: 'Une seule clé de licence pour toutes vos barres d\'outils, à activer sur 2 ordinateurs.',
             },
             {
               icon: Download,
               title: 'Installation guidée',
-              desc: 'Un fichier .rbz par suite, à installer depuis le Gestionnaire d\'extensions de SketchUp. Vos liens de téléchargement arrivent par e-mail.',
+              desc: 'Un fichier .rbz par barre d\'outils, à installer depuis le Gestionnaire d\'extensions de SketchUp. Vos liens de téléchargement arrivent par e-mail.',
             },
           ].map((item) => {
             const Icon = item.icon;
