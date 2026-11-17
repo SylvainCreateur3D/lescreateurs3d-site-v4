@@ -594,6 +594,14 @@ app.get("/api/config", (req, res) => {
   });
 });
 
+// Pays du visiteur d'après son IP (en-tête posé par Vercel) : sert à estimer la TVA sur la page Extensions.
+// Ne renvoie que le code pays, rien d'autre ; l'adresse IP n'est ni lue ni conservée.
+app.get("/api/pays", (req, res) => {
+  const raw = String(req.headers["x-vercel-ip-country"] || "").toUpperCase();
+  res.set("Cache-Control", "private, no-store");
+  res.json({ country: /^[A-Z]{2}$/.test(raw) ? raw : null });
+});
+
 // 2. Courses APIs: Retrieve and update course mappings
 app.get("/api/courses", (req, res) => {
   const courses = getCoursesFromServer();

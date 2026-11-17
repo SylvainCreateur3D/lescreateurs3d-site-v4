@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   ArrowLeft,
@@ -13,7 +14,17 @@ import {
   Download,
   Film,
 } from 'lucide-react';
-import { FR_VAT, PAYMENT_AVAILABLE, PRICES_HT, buyUrl, formatPrice, type PackKey } from '../lib/payments';
+import { PAYMENT_AVAILABLE, PRICES_HT, buyUrl, formatPrice, type PackKey } from '../lib/payments';
+import {
+  OTHER_COUNTRY,
+  countryName,
+  detectCountry,
+  formatRate,
+  guessCountryFromBrowser,
+  priceWithVat,
+  selectableCountries,
+  vatRate,
+} from '../lib/vat';
 
 interface ExtensionsPageProps {
   onGoBack: () => void;
@@ -101,7 +112,24 @@ const SUITES: {
 export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
   // Prix hors taxes ; la TVA du pays de l'acheteur est ajoutée sur la page de paiement Stripe.
   const priceOf = (key: PackKey) => formatPrice(PRICES_HT[key]);
-  const priceFr = (key: PackKey) => formatPrice(Math.round(PRICES_HT[key] * (1 + FR_VAT) * 100) / 100);
+  // Pays du visiteur : estimation immédiate d'après la langue du navigateur, affinée par son adresse IP, modifiable à la main.
+  const [country, setCountry] = useState<string>(guessCountryFromBrowser);
+  const pickedByUser = useRef(false);
+  const countries = useMemo(selectableCountries, []);
+  useEffect(() => {
+    let cancelled = false;
+    detectCountry().then((code) => {
+      if (!cancelled && code && !pickedByUser.current) setCountry(code);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const taxLine = (key: PackKey) => {
+    const rate = vatRate(country);
+    if (rate === null) return 'Hors Union européenne : taxe locale éventuelle ajoutée au paiement';
+    return `Soit ${formatPrice(priceWithVat(PRICES_HT[key], rate))} TTC · TVA ${countryName(country)} ${formatRate(rate)} %`;
+  };
   const separate = SUITES.reduce((sum, suite) => sum + PRICES_HT[suite.key], 0);
   const suiteAmount = PRICES_HT.suite;
   const buy = (key: PackKey) => {
@@ -226,9 +254,26 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                   {priceOf('suite')}
                   <span className="ml-1 text-base font-bold text-slate-400">HT, une fois</span>
                 </div>
-                <p className="-mt-2 text-xs font-medium text-slate-400">
-                  Soit {priceFr('suite')} TTC en France · TVA de votre pays ajoutée au paiement
-                </p>
+                <p className="-mt-2 text-xs font-medium text-slate-400">{taxLine('suite')}</p>
+                <label className="flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
+                  Votre pays
+                  <select
+                    value={vatRate(country) !== null ? country : OTHER_COUNTRY}
+                    onChange={(event) => {
+                      pickedByUser.current = true;
+                      setCountry(event.target.value);
+                    }}
+                    className="cursor-pointer rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600"
+                  >
+                    {countries.map((item) => (
+                      <option key={item.code} value={item.code}>
+                        {item.name}
+                      </option>
+                    ))}
+                    <option value={OTHER_COUNTRY}>Autre pays</option>
+                  </select>
+                </label>
+                <p className="-mt-2 text-[11px] font-medium text-slate-400">Estimation : le montant exact est calculé au paiement.</p>
                 <button
                   className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#204289] px-6 py-4 text-base font-bold text-white shadow-lg transition-all hover:scale-[1.03] active:scale-95"
                   onClick={() => buy('suite')}
@@ -337,7 +382,7 @@ export default function ExtensionsPage({ onGoBack }: ExtensionsPageProps) {
                         <span className="text-sm font-bold text-slate-400 ml-1">HT, une fois</span>
                       </div>
                       <p className="text-xs text-slate-400 font-medium -mt-2">
-                        Soit {priceFr(suite.key)} TTC en France · TVA de votre pays ajoutée au paiement
+                        {taxLine(suite.key)}
                       </p>
                       <p className="text-sm text-slate-500 font-medium">
                         Accès à vie — regardez les vidéos de démo avant d'acheter

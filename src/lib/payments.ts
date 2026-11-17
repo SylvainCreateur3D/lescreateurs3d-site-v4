@@ -17,9 +17,6 @@ export const PRICES_HT: Record<PackKey, number> = {
   control: 19,
 };
 
-// TVA française, pour afficher le prix TTC d'un acheteur en France à côté du prix HT.
-export const FR_VAT = 0.2;
-
 // En local, le bouton mène au serveur d'achat même avant l'ouverture (pour tester).
 export const PAYMENT_AVAILABLE = PAYMENT_OPEN || ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
