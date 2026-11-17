@@ -22,7 +22,7 @@ const EDITEUR = {
 // À RENSEIGNER dès l'adhésion à un médiateur de la consommation (obligatoire pour vendre à des particuliers) :
 // nom, adresse postale et site internet du médiateur. Tant que c'est vide, la phrase de médiation n'est pas affichée.
 const MEDIATEUR = '';
-const MAJ = '4 novembre 2026';
+const MAJ = '17 novembre 2026';
 
 const mail = <a className="text-indigo-600 font-bold underline" href={`mailto:${EDITEUR.email}`}>{EDITEUR.email}</a>;
 
@@ -120,7 +120,12 @@ const PAGES: Record<LegalKind, { title: string; body: () => ReactNode }> = {
           <ul className="list-disc pl-6 space-y-1">
             <li>Licence personnelle, non exclusive et non cessible, valable sans limite de durée pour les packs achetés.</li>
             <li>Elle peut être activée sur 2 ordinateurs au maximum. Un poste peut être libéré depuis la fenêtre de licence pour en activer un autre.</li>
-            <li>Les mises à jour de la version achetée sont incluses. Une éventuelle future version majeure pourra être proposée séparément.</li>
+            <li>
+              Les mises à jour (corrections et nouvelles fonctions) des packs achetés sont offertes pendant <strong>2 mois</strong> à compter de la
+              commande. Au-delà, l'accès aux nouvelles versions suppose un nouvel achat ; la version installée reste utilisable sans limite de durée.
+              Cela ne limite pas la garantie légale de conformité (voir l'article 7), qui comprend les mises à jour nécessaires au maintien de la
+              conformité du logiciel. Une éventuelle future version majeure pourra être proposée séparément.
+            </li>
             <li>Il est interdit de partager la clé, de copier ou revendre les extensions, ou de contourner la vérification de licence.</li>
           </ul>
         </Section>
